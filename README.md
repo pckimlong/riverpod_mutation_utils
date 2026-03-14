@@ -40,6 +40,9 @@ class CounterSave extends _$CounterSave with StateFormMixin<int, int> {
   Future<int> call() {
     return submit((tx, form) async {
       return form + 1;
+    }, afterSuccess: (result) {
+      // Runs after the transaction finishes.
+      // Use ref/container reads here instead of tx.get(...).
     });
   }
 }

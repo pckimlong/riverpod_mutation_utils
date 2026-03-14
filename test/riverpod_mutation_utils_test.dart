@@ -6,6 +6,18 @@ import 'package:riverpod_mutation_utils/riverpod_mutation_utils.dart';
 import 'package:test/test.dart';
 
 final _refProvider = Provider<Ref>((ref) => ref);
+final _counterProvider = NotifierProvider<_CounterNotifier, int>(
+  _CounterNotifier.new,
+);
+
+class _CounterNotifier extends Notifier<int> {
+  @override
+  int build() => 0;
+
+  void incrementBy(int value) {
+    state += value;
+  }
+}
 
 void main() {
   group('MutationRunner', () {
@@ -28,7 +40,7 @@ void main() {
           runCount++;
           return completer.future;
         },
-        afterSuccess: (_, result) {
+        afterSuccess: (result) {
           successCount++;
         },
       );
@@ -46,6 +58,27 @@ void main() {
       expect(await second, 42);
       expect(runCount, 1);
       expect(successCount, 1);
+    });
+
+    test('afterSuccess runs after completion and can use outer ref', () async {
+      final container = ProviderContainer.test();
+      addTearDown(container.dispose);
+
+      final ref = container.read(_refProvider);
+      final mutation = Mutation<int>();
+      final runner = MutationRunner<int>();
+
+      final result = await runner.submitAction(
+        ref,
+        mutation,
+        (tx) async => 7,
+        afterSuccess: (value) {
+          ref.read(_counterProvider.notifier).incrementBy(value);
+        },
+      );
+
+      expect(result, 7);
+      expect(container.read(_counterProvider), 7);
     });
 
     test('forwards mutation success notifications', () async {

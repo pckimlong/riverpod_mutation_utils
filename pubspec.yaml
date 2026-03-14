@@ -1,6 +1,6 @@
 name: riverpod_mutation_utils
 description: Shared helpers and mixins for Riverpod experimental mutations.
-version: 0.1.0
+version: 0.2.0
 repository: https://github.com/pckimlong/riverpod_mutation_utils
 
 environment:
