@@ -5,8 +5,8 @@ part 'generated_non_family_example.g.dart';
 
 @generateMutation
 @riverpod
-class GeneratedCounterSave extends _$GeneratedCounterSave
-    with StateFormMixin<int, int>, _$GeneratedCounterSaveMutation {
+class GeneratedCounterSave extends _$GeneratedCounterSaveMutation
+    with StateFormMixin<int, int> {
   @override
   int build() => 0;
 

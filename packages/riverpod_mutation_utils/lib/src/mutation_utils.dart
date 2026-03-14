@@ -133,13 +133,7 @@ mixin StateFormMixin<FormState, Result> on $Notifier<FormState> {
   final _runner = MutationRunner<Result>();
 
   FormState get _formState => state;
-  Mutation<Result> get mutationBase;
-  Object? get mutationKey => null;
-  Mutation<Result> get mutation {
-    final key = mutationKey;
-    if (key == null) return mutationBase;
-    return mutationBase(key);
-  }
+  Mutation<Result> get mutation;
 
   void listenMutation({
     MutationChangedCallback<Result>? onChanged,
@@ -179,13 +173,7 @@ mixin StateFormMixin<FormState, Result> on $Notifier<FormState> {
 mixin AsyncStateFormMixin<FormState, Result> on $AsyncNotifier<FormState> {
   final _runner = MutationRunner<Result>();
 
-  Mutation<Result> get mutationBase;
-  Object? get mutationKey => null;
-  Mutation<Result> get mutation {
-    final key = mutationKey;
-    if (key == null) return mutationBase;
-    return mutationBase(key);
-  }
+  Mutation<Result> get mutation;
 
   FormState get _formState {
     if (!state.hasValue) {
@@ -236,13 +224,7 @@ mixin AsyncStateFormMixin<FormState, Result> on $AsyncNotifier<FormState> {
 mixin MutationActionMixin<Result> on $Notifier<MutationState<Result>> {
   final _runner = MutationRunner<Result>();
 
-  Mutation<Result> get mutationBase;
-  Object? get mutationKey => null;
-  Mutation<Result> get mutation {
-    final key = mutationKey;
-    if (key == null) return mutationBase;
-    return mutationBase(key);
-  }
+  Mutation<Result> get mutation;
 
   Future<Result> submitAction(
     Future<Result> Function(MutationTransaction tx) run, {

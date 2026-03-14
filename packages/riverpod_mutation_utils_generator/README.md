@@ -6,19 +6,19 @@ This package generates:
 
 - a stable `Mutation<Result>` base
 - a keyed mutation accessor for family providers
-- a generated mixin that wires `mutationBase` and `mutationKey`
+- a convenience base and wiring mixin for the provider `mutation` getter
 
 ## Install
 
 ```yaml
 dependencies:
   riverpod_annotation: ^4.0.2
-  riverpod_mutation_utils: ^0.3.4
+  riverpod_mutation_utils: ^0.4.0
 
 dev_dependencies:
   build_runner: ^2.7.1
   riverpod_generator: ^4.0.2
-  riverpod_mutation_utils_generator: ^0.3.4
+  riverpod_mutation_utils_generator: ^0.4.0
 ```
 
 ## Usage
@@ -34,8 +34,8 @@ part 'item_update_form.g.dart';
 
 @generateMutation
 @riverpod
-class ItemUpdateForm extends _$ItemUpdateForm
-    with StateFormMixin<String, String>, _$ItemUpdateFormMutation {
+class ItemUpdateForm extends _$ItemUpdateFormMutation
+    with StateFormMixin<String, String> {
   @override
   String build(String id) => id;
 
@@ -55,10 +55,11 @@ The generator emits:
 
 - a top-level `Mutation<Result>` base
 - a public mutation accessor such as `itemUpdateFormMutation(...)`
-- a mixin such as `_$ItemUpdateFormMutation`
+- a convenience abstract base such as `_$ItemUpdateFormMutation`
+- a wiring mixin such as `_$ItemUpdateFormMutationWiring`
 
 Family providers are keyed automatically. If the family has multiple
-parameters, the generated mutation key becomes a record of those arguments.
+parameters, the generated accessor key becomes a record of those arguments.
 
 See:
 

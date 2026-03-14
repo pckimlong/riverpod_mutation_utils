@@ -15,15 +15,16 @@ void main() {
         contains('final _\$counterSaveMutationBase = Mutation<int>();'),
       );
       expect(output, contains('Mutation<int> counterSaveMutation() {'));
+      expect(output, contains('abstract class _\$CounterSaveMutation'));
+      expect(output, contains('    extends _\$CounterSave'));
+      expect(output, contains('    with _\$CounterSaveMutationWiring {}'));
       expect(
         output,
-        contains('mixin _\$CounterSaveMutation on _\$CounterSave {'),
+        contains('mixin _\$CounterSaveMutationWiring on _\$CounterSave {'),
       );
       expect(
         output,
-        contains(
-          'Mutation<int> get mutationBase => _\$counterSaveMutationBase;',
-        ),
+        contains('Mutation<int> get mutation => _\$counterSaveMutationBase;'),
       );
       expect(output, isNot(contains('mutationKey')));
     });
@@ -53,7 +54,12 @@ void main() {
           'Mutation<String> itemUpdateFormMutation(String id, {required String orgId}) {',
         ),
       );
-      expect(output, contains('Object get mutationKey => (id, orgId);'));
+      expect(
+        output,
+        contains(
+          'Mutation<String> get mutation => _\$itemUpdateFormMutationBase((id, orgId));',
+        ),
+      );
     });
   });
 }

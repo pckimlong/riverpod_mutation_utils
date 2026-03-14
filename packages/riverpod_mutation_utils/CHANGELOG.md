@@ -1,3 +1,12 @@
+## 0.4.0
+
+- Breaking: simplify runtime mixins to require a single `mutation` getter
+  instead of `mutationBase` and `mutationKey`.
+- Add a generated convenience base such as `_$ItemUpdateFormMutation`, so
+  generated providers can keep `StateFormMixin<...>` explicit while hiding the
+  wiring mixin.
+- Bump the companion generator dependency to `0.4.0`.
+
 ## 0.3.4
 
 - Retry the first automated pub.dev release after fixing release tag pushes to use `RELEASE_TAG_TOKEN`.

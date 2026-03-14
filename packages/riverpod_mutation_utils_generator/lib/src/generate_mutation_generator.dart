@@ -25,7 +25,8 @@ String renderMutationSpec({
 }) {
   final mutationBaseName = '_\$${_lowerFirst(className)}MutationBase';
   final mutationAccessorName = '${_lowerFirst(className)}Mutation';
-  final generatedMixinName = '_\$${className}Mutation';
+  final generatedClassName = '_\$${className}Mutation';
+  final generatedMixinName = '_\$${className}MutationWiring';
   final generatedBaseName = '_\$$className';
   final parameterList = _renderParameterList(parameters);
   final keyExpression = _renderKeyExpression(parameters);
@@ -42,18 +43,15 @@ String renderMutationSpec({
     ..writeln('  return $mutationExpression;')
     ..writeln('}')
     ..writeln()
+    ..writeln('abstract class $generatedClassName')
+    ..writeln('    extends $generatedBaseName')
+    ..writeln('    with $generatedMixinName {}')
+    ..writeln()
     ..writeln('mixin $generatedMixinName on $generatedBaseName {')
     ..writeln('  @override')
     ..writeln(
-      '  Mutation<$resultTypeDisplay> get mutationBase => $mutationBaseName;',
+      '  Mutation<$resultTypeDisplay> get mutation => $mutationExpression;',
     );
-
-  if (keyExpression != null) {
-    buffer
-      ..writeln()
-      ..writeln('  @override')
-      ..writeln('  Object get mutationKey => $keyExpression;');
-  }
 
   buffer.writeln('}');
 

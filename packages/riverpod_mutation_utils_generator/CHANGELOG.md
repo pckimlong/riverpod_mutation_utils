@@ -1,3 +1,11 @@
+## 0.4.0
+
+- Breaking: generate provider `mutation` overrides instead of `mutationBase`
+  and `mutationKey` wiring.
+- Add a convenience abstract base such as `_$ItemUpdateFormMutation`, plus a
+  separate `_$ItemUpdateFormMutationWiring` mixin for compatibility.
+- Bump the runtime package dependency to `0.4.0`.
+
 ## 0.3.4
 
 - Retry the first automated pub.dev release after fixing release tag pushes to use `RELEASE_TAG_TOKEN`.

@@ -5,8 +5,8 @@ part 'riverpod_mutation_utils_example.g.dart';
 
 @generateMutation
 @riverpod
-class ItemUpdateForm extends _$ItemUpdateForm
-    with StateFormMixin<String, String>, _$ItemUpdateFormMutation {
+class ItemUpdateForm extends _$ItemUpdateFormMutation
+    with StateFormMixin<String, String> {
   @override
   String build(String id) => id;
 
