@@ -31,6 +31,7 @@ Before automation can work:
 
 - Publish the first version of each package manually on pub.dev.
 - In each package's pub.dev Admin tab, enable automated publishing from `pckimlong/riverpod_mutation_utils`.
+- Add a repository secret named `RELEASE_TAG_TOKEN` so `.github/workflows/release.yml` can push tags without using the default `GITHUB_TOKEN`.
 - Configure these tag patterns:
   - `riverpod_mutation_utils-v{{version}}`
   - `riverpod_mutation_utils_generator-v{{version}}`
