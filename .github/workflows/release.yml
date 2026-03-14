@@ -1,4 +1,4 @@
-name: Create Release
+name: Create Git Release
 
 on:
   push:
@@ -91,7 +91,6 @@ jobs:
             (cd "${{ matrix.package_path }}" && dart analyze --fatal-infos --fatal-warnings)
             (cd "${{ matrix.package_path }}" && dart test)
           fi
-          (cd "${{ matrix.package_path }}" && dart pub publish --dry-run)
 
       - name: Extract release notes from package changelog
         if: steps.changes.outputs.changed == 'true' && steps.check_tag.outputs.exists == 'false'

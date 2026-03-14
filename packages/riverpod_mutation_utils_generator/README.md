@@ -13,13 +13,25 @@ This package generates:
 ```yaml
 dependencies:
   riverpod_annotation: ^4.0.2
-  riverpod_mutation_utils: ^0.3.1
+  riverpod_mutation_utils:
+    git:
+      url: https://github.com/pckimlong/riverpod_mutation_utils.git
+      path: packages/riverpod_mutation_utils
+      ref: riverpod_mutation_utils-v0.3.2
 
 dev_dependencies:
   build_runner: ^2.7.1
   riverpod_generator: ^4.0.2
-  riverpod_mutation_utils_generator: ^0.3.1
+  riverpod_mutation_utils_generator:
+    git:
+      url: https://github.com/pckimlong/riverpod_mutation_utils.git
+      path: packages/riverpod_mutation_utils_generator
+      ref: riverpod_mutation_utils_generator-v0.3.2
 ```
+
+Keep both refs on the same release version. Internally, the generator package
+resolves the runtime package from the matching `riverpod_mutation_utils-v{{version}}`
+tag.
 
 ## Usage
 
