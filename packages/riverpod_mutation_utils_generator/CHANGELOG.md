@@ -1,3 +1,8 @@
+## 0.3.4
+
+- Retry the first automated pub.dev release after fixing release tag pushes to use `RELEASE_TAG_TOKEN`.
+- Bump the runtime package dependency to `0.3.4`.
+
 ## 0.3.3
 
 - Prepare the first automated pub.dev release after enabling GitHub Actions publishing.
