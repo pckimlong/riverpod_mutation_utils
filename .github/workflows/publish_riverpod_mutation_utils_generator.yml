@@ -1,0 +1,46 @@
+name: Publish riverpod_mutation_utils_generator to pub.dev
+
+on:
+  push:
+    tags:
+      - 'riverpod_mutation_utils_generator-v*'
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Dart
+        uses: dart-lang/setup-dart@v1
+
+      - name: Get workspace dependencies
+        run: dart pub get
+
+      - name: Wait for runtime package version on pub.dev
+        shell: bash
+        run: |
+          VERSION=$(grep '^version:' packages/riverpod_mutation_utils_generator/pubspec.yaml | sed 's/version: //')
+          URL="https://pub.dev/api/packages/riverpod_mutation_utils/versions/${VERSION}"
+
+          for attempt in $(seq 1 30); do
+            status_code=$(curl -s -o /dev/null -w "%{http_code}" "$URL")
+            if [ "$status_code" = "200" ]; then
+              echo "riverpod_mutation_utils $VERSION is available on pub.dev"
+              exit 0
+            fi
+
+            echo "Attempt $attempt: riverpod_mutation_utils $VERSION is not available yet (HTTP $status_code)"
+            sleep 20
+          done
+
+          echo "Timed out waiting for riverpod_mutation_utils $VERSION to appear on pub.dev"
+          exit 1
+
+      - name: Publish to pub.dev
+        working-directory: packages/riverpod_mutation_utils_generator
+        run: dart pub publish --force

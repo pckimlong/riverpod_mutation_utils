@@ -1,3 +1,14 @@
+## 0.3.3
+
+- Prepare the first automated pub.dev release after enabling GitHub Actions publishing.
+- Bump the companion generator dependency to `0.3.3`.
+
+## 0.3.2
+
+- Restored hosted pub.dev release metadata and installation guidance.
+- Added pub.dev automated publishing workflow support for tagged releases.
+- Bumped the companion generator dependency to `0.3.2`.
+
 ## 0.3.1
 
 - Added generated usage examples for non-family, single-parameter family, and

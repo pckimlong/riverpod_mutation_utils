@@ -28,7 +28,7 @@ Runtime package:
 
 ```yaml
 dependencies:
-  riverpod_mutation_utils: ^0.3.1
+  riverpod_mutation_utils: ^0.3.3
 ```
 
 If you use `riverpod_annotation`, also add:
@@ -46,7 +46,7 @@ If you want generated mutation wiring, also add:
 
 ```yaml
 dev_dependencies:
-  riverpod_mutation_utils_generator: ^0.3.1
+  riverpod_mutation_utils_generator: ^0.3.3
 ```
 
 ## Quick Start

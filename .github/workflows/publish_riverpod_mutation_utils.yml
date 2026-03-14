@@ -1,0 +1,30 @@
+name: Publish riverpod_mutation_utils to pub.dev
+
+on:
+  push:
+    tags:
+      - 'riverpod_mutation_utils-v*'
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Dart
+        uses: dart-lang/setup-dart@v1
+
+      - name: Get workspace dependencies
+        run: dart pub get
+
+      - name: Generate package examples
+        working-directory: packages/riverpod_mutation_utils
+        run: dart run build_runner build --delete-conflicting-outputs
+
+      - name: Publish to pub.dev
+        working-directory: packages/riverpod_mutation_utils
+        run: dart pub publish --force

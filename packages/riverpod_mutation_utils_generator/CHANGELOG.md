@@ -1,3 +1,14 @@
+## 0.3.3
+
+- Prepare the first automated pub.dev release after enabling GitHub Actions publishing.
+- Bump the runtime package dependency to `0.3.3`.
+
+## 0.3.2
+
+- Restored hosted pub.dev dependency metadata for the runtime package.
+- Added pub.dev automated publishing workflow support for tagged releases.
+- Updated installation docs to use hosted pub versions.
+
 ## 0.3.1
 
 - Fixed generated mutation accessors for family providers with named
