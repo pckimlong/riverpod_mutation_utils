@@ -1,0 +1,14 @@
+name: riverpod_mutation_utils
+description: Shared helpers and mixins for Riverpod experimental mutations.
+version: 0.1.0
+
+environment:
+  sdk: ^3.11.1
+
+dependencies:
+  riverpod: ^3.2.1
+  riverpod_annotation: ^4.0.2
+
+dev_dependencies:
+  lints: ^6.0.0
+  test: ^1.25.6

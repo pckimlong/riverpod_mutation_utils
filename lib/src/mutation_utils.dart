@@ -1,0 +1,284 @@
+import 'dart:async';
+
+import 'package:riverpod/experimental/mutation.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
+
+typedef MutationChangedCallback<Result> =
+    void Function(
+      MutationState<Result>? previous,
+      MutationState<Result> next,
+    );
+
+typedef MutationSuccessCallback<Result> =
+    void Function(MutationState<Result>? previous, Result result);
+
+void _listenMutationImpl<Result>(
+  Ref ref,
+  Mutation<Result> mutation, {
+  MutationChangedCallback<Result>? onChanged,
+  MutationSuccessCallback<Result>? onSuccess,
+  void Function(
+    MutationState<Result>? previous,
+    Object error,
+    StackTrace? stackTrace,
+  )?
+  onError,
+}) {
+  ref.listen<MutationState<Result>>(mutation, (previous, next) {
+    onChanged?.call(previous, next);
+    if (next case MutationSuccess(:final value)) {
+      onSuccess?.call(previous, value);
+    } else if (next case MutationError(:final error, :final stackTrace)) {
+      onError?.call(previous, error, stackTrace);
+    }
+  });
+}
+
+void _resetMutationSafely<Result>(
+  Mutation<Result> mutation,
+  MutationTarget target,
+) {
+  try {
+    mutation.reset(target);
+  } on StateError catch (error) {
+    final message = error.message.toString();
+    if (!message.contains('already disposed')) rethrow;
+  }
+}
+
+/// Low-level helper for executing and observing Riverpod experimental
+/// [Mutation]s from provider code.
+///
+/// This runner is intentionally small:
+/// - ensures mutation state is reset on provider disposal
+/// - coalesces concurrent submissions into the same in-flight [Future]
+/// - forwards mutation success/error events via [listenMutation]
+class MutationRunner<Result> {
+  Future<Result>? _inFlight;
+  final _registeredMutationDisposals = <Object>{};
+
+  void ensureMutationResetOnDispose(Ref ref, Mutation<Result> mutation) {
+    if (_registeredMutationDisposals.add(mutation)) {
+      final container = ref.container;
+      ref.onDispose(() {
+        unawaited(
+          Future<void>(() {
+            _resetMutationSafely(mutation, container);
+          }),
+        );
+      });
+    }
+  }
+
+  void listenMutation(
+    Ref ref,
+    Mutation<Result> mutation, {
+    MutationChangedCallback<Result>? onChanged,
+    MutationSuccessCallback<Result>? onSuccess,
+    void Function(
+      MutationState<Result>? previous,
+      Object error,
+      StackTrace? stackTrace,
+    )?
+    onError,
+  }) {
+    ensureMutationResetOnDispose(ref, mutation);
+    _listenMutationImpl(
+      ref,
+      mutation,
+      onChanged: onChanged,
+      onSuccess: onSuccess,
+      onError: onError,
+    );
+  }
+
+  Future<Result> submitAction(
+    Ref ref,
+    Mutation<Result> mutation,
+    Future<Result> Function(MutationTransaction tx) run, {
+    FutureOr<void> Function(MutationTransaction tx, Result result)?
+    afterSuccess,
+    FutureOr<void> Function(Object error, StackTrace stackTrace)? afterError,
+  }) async {
+    ensureMutationResetOnDispose(ref, mutation);
+    if (_inFlight != null) return _inFlight!;
+
+    MutationTransaction? transaction;
+    final future = mutation.run(ref, (tx) {
+      transaction = tx;
+      return run(tx);
+    });
+    _inFlight = future;
+
+    try {
+      final result = await future;
+      final tx = transaction;
+      if (tx == null) {
+        throw StateError('Mutation transaction was not initialized.');
+      }
+      await afterSuccess?.call(tx, result);
+      return result;
+    } catch (error, stackTrace) {
+      await afterError?.call(error, stackTrace);
+      rethrow;
+    } finally {
+      _inFlight = null;
+    }
+  }
+}
+
+/// Shared helper for provider forms backed by sync build state.
+mixin StateFormMixin<FormState, Result> on $Notifier<FormState> {
+  final _runner = MutationRunner<Result>();
+
+  FormState get _formState => state;
+  Mutation<Result> get mutation;
+
+  void listenMutation({
+    MutationChangedCallback<Result>? onChanged,
+    MutationSuccessCallback<Result>? onSuccess,
+    void Function(
+      MutationState<Result>? previous,
+      Object error,
+      StackTrace? stackTrace,
+    )?
+    onError,
+  }) {
+    _runner.listenMutation(
+      ref,
+      mutation,
+      onChanged: onChanged,
+      onSuccess: onSuccess,
+      onError: onError,
+    );
+  }
+
+  Future<Result> submit(
+    Future<Result> Function(MutationTransaction tx, FormState form) run, {
+    FutureOr<void> Function(MutationTransaction tx, Result result)?
+    afterSuccess,
+    FutureOr<void> Function(Object error, StackTrace stackTrace)? afterError,
+  }) {
+    return _runner.submitAction(
+      ref,
+      mutation,
+      (tx) => run(tx, _formState),
+      afterSuccess: afterSuccess,
+      afterError: afterError,
+    );
+  }
+
+  @Deprecated('Use submit(...) instead.')
+  Future<Result> perform(
+    Future<Result> Function(MutationTransaction tx) action, {
+    void Function(Result result)? onSuccess,
+    void Function(Object error)? onError,
+  }) {
+    return submit(
+      (tx, _) => action(tx),
+      afterSuccess: onSuccess == null ? null : (_, result) => onSuccess(result),
+      afterError: onError == null ? null : (error, _) => onError(error),
+    );
+  }
+}
+
+/// Shared helper for provider forms backed by async build state.
+mixin AsyncStateFormMixin<FormState, Result> on $AsyncNotifier<FormState> {
+  final _runner = MutationRunner<Result>();
+
+  Mutation<Result> get mutation;
+
+  FormState get _formState {
+    if (!state.hasValue) {
+      throw StateError(
+        'Cannot call submit() before the async notifier has finished building. '
+        'Await the provider future first.',
+      );
+    }
+
+    return state.requireValue;
+  }
+
+  void listenMutation({
+    MutationChangedCallback<Result>? onChanged,
+    MutationSuccessCallback<Result>? onSuccess,
+    void Function(
+      MutationState<Result>? previous,
+      Object error,
+      StackTrace? stackTrace,
+    )?
+    onError,
+  }) {
+    _runner.listenMutation(
+      ref,
+      mutation,
+      onChanged: onChanged,
+      onSuccess: onSuccess,
+      onError: onError,
+    );
+  }
+
+  Future<Result> submit(
+    Future<Result> Function(MutationTransaction tx, FormState form) run, {
+    FutureOr<void> Function(MutationTransaction tx, Result result)?
+    afterSuccess,
+    FutureOr<void> Function(Object error, StackTrace stackTrace)? afterError,
+  }) {
+    return _runner.submitAction(
+      ref,
+      mutation,
+      (tx) => run(tx, _formState),
+      afterSuccess: afterSuccess,
+      afterError: afterError,
+    );
+  }
+
+  @Deprecated('Use submit(...) instead.')
+  Future<Result> perform(
+    Future<Result> Function(MutationTransaction tx, FormState formState)
+    action, {
+    void Function(Result result)? onSuccess,
+    void Function(Object error)? onError,
+  }) {
+    return submit(
+      action,
+      afterSuccess: onSuccess == null ? null : (_, result) => onSuccess(result),
+      afterError: onError == null ? null : (error, _) => onError(error),
+    );
+  }
+}
+
+/// Shared helper for providers that trigger mutations without form state.
+mixin MutationActionMixin<Result> on $Notifier<MutationState<Result>> {
+  final _runner = MutationRunner<Result>();
+
+  Mutation<Result> get mutation;
+
+  Future<Result> submitAction(
+    Future<Result> Function(MutationTransaction tx) run, {
+    FutureOr<void> Function(MutationTransaction tx, Result result)?
+    afterSuccess,
+    FutureOr<void> Function(Object error, StackTrace stackTrace)? afterError,
+  }) {
+    return _runner.submitAction(
+      ref,
+      mutation,
+      run,
+      afterSuccess: afterSuccess,
+      afterError: afterError,
+    );
+  }
+
+  @Deprecated('Use submitAction(...) instead.')
+  Future<Result> performAction(
+    Future<Result> Function(MutationTransaction tx) action, {
+    void Function(MutationTransaction tx, Result result)? onSuccess,
+    void Function(Object error)? onError,
+  }) {
+    return submitAction(
+      action,
+      afterSuccess: onSuccess,
+      afterError: onError == null ? null : (error, _) => onError(error),
+    );
+  }
+}

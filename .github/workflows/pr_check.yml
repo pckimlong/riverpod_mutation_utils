@@ -1,0 +1,53 @@
+name: PR Checks
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths-ignore:
+      - '**.md'
+      - 'LICENSE'
+      - '.gitignore'
+
+jobs:
+  analyze-test-and-validate:
+    name: Analyze, Test, and Validate
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Dart
+        uses: dart-lang/setup-dart@v1
+
+      - name: Verify Dart installation
+        run: dart --version
+
+      - name: Get dependencies
+        run: dart pub get
+
+      - name: Verify dependencies
+        run: dart pub get --dry-run
+
+      - name: Check formatting
+        run: dart format --output=none --set-exit-if-changed .
+
+      - name: Analyze code
+        run: dart analyze --fatal-infos --fatal-warnings
+
+      - name: Run tests
+        run: dart test
+
+      - name: Validate package
+        run: dart pub publish --dry-run
+
+      - name: Check package score
+        run: |
+          dart pub global activate pana
+          dart pub global run pana --no-warning --exit-code-threshold 0
+        continue-on-error: true
+
+      - name: Check for outdated dependencies
+        run: dart pub outdated
+        continue-on-error: true
