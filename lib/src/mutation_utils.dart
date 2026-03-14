@@ -93,27 +93,19 @@ class MutationRunner<Result> {
     Ref ref,
     Mutation<Result> mutation,
     Future<Result> Function(MutationTransaction tx) run, {
-    FutureOr<void> Function(MutationTransaction tx, Result result)?
-    afterSuccess,
+    // Runs after the mutation transaction has completed and closed.
+    FutureOr<void> Function(Result result)? afterSuccess,
     FutureOr<void> Function(Object error, StackTrace stackTrace)? afterError,
   }) async {
     ensureMutationResetOnDispose(ref, mutation);
     if (_inFlight != null) return _inFlight!;
 
-    MutationTransaction? transaction;
-    final future = mutation.run(ref, (tx) {
-      transaction = tx;
-      return run(tx);
-    });
+    final future = mutation.run(ref, run);
     _inFlight = future;
 
     try {
       final result = await future;
-      final tx = transaction;
-      if (tx == null) {
-        throw StateError('Mutation transaction was not initialized.');
-      }
-      await afterSuccess?.call(tx, result);
+      await afterSuccess?.call(result);
       return result;
     } catch (error, stackTrace) {
       await afterError?.call(error, stackTrace);
@@ -152,8 +144,7 @@ mixin StateFormMixin<FormState, Result> on $Notifier<FormState> {
 
   Future<Result> submit(
     Future<Result> Function(MutationTransaction tx, FormState form) run, {
-    FutureOr<void> Function(MutationTransaction tx, Result result)?
-    afterSuccess,
+    FutureOr<void> Function(Result result)? afterSuccess,
     FutureOr<void> Function(Object error, StackTrace stackTrace)? afterError,
   }) {
     return _runner.submitAction(
@@ -162,19 +153,6 @@ mixin StateFormMixin<FormState, Result> on $Notifier<FormState> {
       (tx) => run(tx, _formState),
       afterSuccess: afterSuccess,
       afterError: afterError,
-    );
-  }
-
-  @Deprecated('Use submit(...) instead.')
-  Future<Result> perform(
-    Future<Result> Function(MutationTransaction tx) action, {
-    void Function(Result result)? onSuccess,
-    void Function(Object error)? onError,
-  }) {
-    return submit(
-      (tx, _) => action(tx),
-      afterSuccess: onSuccess == null ? null : (_, result) => onSuccess(result),
-      afterError: onError == null ? null : (error, _) => onError(error),
     );
   }
 }
@@ -217,8 +195,7 @@ mixin AsyncStateFormMixin<FormState, Result> on $AsyncNotifier<FormState> {
 
   Future<Result> submit(
     Future<Result> Function(MutationTransaction tx, FormState form) run, {
-    FutureOr<void> Function(MutationTransaction tx, Result result)?
-    afterSuccess,
+    FutureOr<void> Function(Result result)? afterSuccess,
     FutureOr<void> Function(Object error, StackTrace stackTrace)? afterError,
   }) {
     return _runner.submitAction(
@@ -227,20 +204,6 @@ mixin AsyncStateFormMixin<FormState, Result> on $AsyncNotifier<FormState> {
       (tx) => run(tx, _formState),
       afterSuccess: afterSuccess,
       afterError: afterError,
-    );
-  }
-
-  @Deprecated('Use submit(...) instead.')
-  Future<Result> perform(
-    Future<Result> Function(MutationTransaction tx, FormState formState)
-    action, {
-    void Function(Result result)? onSuccess,
-    void Function(Object error)? onError,
-  }) {
-    return submit(
-      action,
-      afterSuccess: onSuccess == null ? null : (_, result) => onSuccess(result),
-      afterError: onError == null ? null : (error, _) => onError(error),
     );
   }
 }
@@ -253,8 +216,7 @@ mixin MutationActionMixin<Result> on $Notifier<MutationState<Result>> {
 
   Future<Result> submitAction(
     Future<Result> Function(MutationTransaction tx) run, {
-    FutureOr<void> Function(MutationTransaction tx, Result result)?
-    afterSuccess,
+    FutureOr<void> Function(Result result)? afterSuccess,
     FutureOr<void> Function(Object error, StackTrace stackTrace)? afterError,
   }) {
     return _runner.submitAction(
@@ -263,19 +225,6 @@ mixin MutationActionMixin<Result> on $Notifier<MutationState<Result>> {
       run,
       afterSuccess: afterSuccess,
       afterError: afterError,
-    );
-  }
-
-  @Deprecated('Use submitAction(...) instead.')
-  Future<Result> performAction(
-    Future<Result> Function(MutationTransaction tx) action, {
-    void Function(MutationTransaction tx, Result result)? onSuccess,
-    void Function(Object error)? onError,
-  }) {
-    return submitAction(
-      action,
-      afterSuccess: onSuccess,
-      afterError: onError == null ? null : (error, _) => onError(error),
     );
   }
 }
