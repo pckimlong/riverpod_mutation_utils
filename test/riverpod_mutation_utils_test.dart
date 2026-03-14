@@ -33,14 +33,10 @@ void main() {
         },
       );
 
-      final second = runner.submitAction(
-        ref,
-        mutation,
-        (tx) async {
-          runCount++;
-          return -1;
-        },
-      );
+      final second = runner.submitAction(ref, mutation, (tx) async {
+        runCount++;
+        return -1;
+      });
 
       expect(runCount, 1);
 
@@ -77,14 +73,8 @@ void main() {
 
       expect(result, 7);
       expect(events, contains('success:7'));
-      expect(
-        events,
-        contains('MutationIdle<int>->MutationPending<int>'),
-      );
-      expect(
-        events,
-        contains('MutationPending<int>->MutationSuccess<int>'),
-      );
+      expect(events, contains('MutationIdle<int>->MutationPending<int>'));
+      expect(events, contains('MutationPending<int>->MutationSuccess<int>'));
     });
 
     test('forwards mutation error notifications', () async {

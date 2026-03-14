@@ -4,10 +4,7 @@ import 'package:riverpod/experimental/mutation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 typedef MutationChangedCallback<Result> =
-    void Function(
-      MutationState<Result>? previous,
-      MutationState<Result> next,
-    );
+    void Function(MutationState<Result>? previous, MutationState<Result> next);
 
 typedef MutationSuccessCallback<Result> =
     void Function(MutationState<Result>? previous, Result result);
