@@ -1,56 +1,18 @@
-# riverpod_mutation_utils
+# riverpod_mutation_utils workspace
 
-Shared helpers for Riverpod experimental mutations.
+Monorepo for:
 
-This package extracts the non-UI mutation layer so multiple apps can share:
-- reset-on-dispose mutation handling
-- in-flight submit coalescing
-- sync and async form mixins
-- mutation-only action mixins
+- `packages/riverpod_mutation_utils`: runtime mixins, annotations, and helpers
+- `packages/riverpod_mutation_utils_generator`: code generation for mutation wiring
 
-## Scope
+This repo uses a Dart workspace so both packages can evolve and test together.
 
-This package is intentionally small. It does not include:
-- dialogs or pages
-- toasts or error banners
-- navigation helpers
-- form widgets
+Common workspace commands:
 
-Keep those concerns inside each app.
-
-## Usage
-
-```dart
-import 'package:riverpod/experimental/mutation.dart';
-import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:riverpod_mutation_utils/riverpod_mutation_utils.dart';
-
-part 'example.g.dart';
-
-@riverpod
-class CounterSave extends _$CounterSave with StateFormMixin<int, int> {
-  static final _mutation = Mutation<int>();
-
-  @override
-  int build() => 0;
-
-  @override
-  Mutation<int> get mutation => _mutation;
-
-  Future<int> call() {
-    return submit((tx, form) async {
-      return form + 1;
-    }, afterSuccess: (result) {
-      // Runs after the transaction finishes.
-      // Use ref/container reads here instead of tx.get(...).
-    });
-  }
-}
+```sh
+dart pub get
+dart format .
+cd packages/riverpod_mutation_utils && dart run build_runner build --delete-conflicting-outputs
+cd packages/riverpod_mutation_utils && dart test
+cd packages/riverpod_mutation_utils_generator && dart test
 ```
-
-## API
-
-- `MutationRunner<Result>`
-- `StateFormMixin<FormState, Result>`
-- `AsyncStateFormMixin<FormState, Result>`
-- `MutationActionMixin<Result>`
