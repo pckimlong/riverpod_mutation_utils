@@ -28,11 +28,7 @@ Runtime package:
 
 ```yaml
 dependencies:
-  riverpod_mutation_utils:
-    git:
-      url: https://github.com/pckimlong/riverpod_mutation_utils.git
-      path: packages/riverpod_mutation_utils
-      ref: riverpod_mutation_utils-v0.3.2
+  riverpod_mutation_utils: ^0.3.3
 ```
 
 If you use `riverpod_annotation`, also add:
@@ -50,15 +46,8 @@ If you want generated mutation wiring, also add:
 
 ```yaml
 dev_dependencies:
-  riverpod_mutation_utils_generator:
-    git:
-      url: https://github.com/pckimlong/riverpod_mutation_utils.git
-      path: packages/riverpod_mutation_utils_generator
-      ref: riverpod_mutation_utils_generator-v0.3.2
+  riverpod_mutation_utils_generator: ^0.3.3
 ```
-
-Keep both refs on the same release version. The generator resolves
-`riverpod_mutation_utils` from the matching runtime tag.
 
 ## Quick Start
 

@@ -1,7 +1,6 @@
 name: riverpod_mutation_utils_generator
 description: Code generation for riverpod_mutation_utils mutation wiring.
-version: 0.3.2
-publish_to: none
+version: 0.3.3
 repository: https://github.com/pckimlong/riverpod_mutation_utils
 resolution: workspace
 
@@ -11,12 +10,7 @@ environment:
 dependencies:
   analyzer: ^9.0.0
   build: ^4.0.0
-  riverpod_mutation_utils:
-    git:
-      url: https://github.com/pckimlong/riverpod_mutation_utils.git
-      path: packages/riverpod_mutation_utils
-      tag_pattern: riverpod_mutation_utils-v{{version}}
-    version: ^0.3.2
+  riverpod_mutation_utils: ^0.3.3
   riverpod_annotation: ^4.0.2
   source_gen: ^4.2.1
 

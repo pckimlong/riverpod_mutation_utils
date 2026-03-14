@@ -1,9 +1,13 @@
+## 0.3.3
+
+- Prepare the first automated pub.dev release after enabling GitHub Actions publishing.
+- Bump the runtime package dependency to `0.3.3`.
+
 ## 0.3.2
 
-- Switched the generator to a git-only release model with `publish_to: none`.
-- Changed the runtime dependency to resolve from matching git tags instead of
-  hosted pub.
-- Updated installation docs to use git tags instead of hosted pub versions.
+- Restored hosted pub.dev dependency metadata for the runtime package.
+- Added pub.dev automated publishing workflow support for tagged releases.
+- Updated installation docs to use hosted pub versions.
 
 ## 0.3.1
 
