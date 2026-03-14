@@ -5,8 +5,8 @@ part 'generated_multi_param_example.g.dart';
 
 @generateMutation
 @riverpod
-class GeneratedScopedItemUpdate extends _$GeneratedScopedItemUpdate
-    with StateFormMixin<String, String>, _$GeneratedScopedItemUpdateMutation {
+class GeneratedScopedItemUpdate extends _$GeneratedScopedItemUpdateMutation
+    with StateFormMixin<String, String> {
   @override
   String build(String id, {required String orgId}) => '$orgId:$id';
 

@@ -12,7 +12,7 @@ class ManualCounterSave extends _$ManualCounterSave
   int build() => 0;
 
   @override
-  Mutation<int> get mutationBase => counterSaveMutation;
+  Mutation<int> get mutation => counterSaveMutation;
 
   Future<int> save() {
     return submit((tx, form) async {

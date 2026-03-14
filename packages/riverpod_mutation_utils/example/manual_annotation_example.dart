@@ -16,10 +16,7 @@ class ManualItemUpdateForm extends _$ManualItemUpdateForm
   String build(String id) => id;
 
   @override
-  Mutation<String> get mutationBase => itemUpdateFormMutationBase;
-
-  @override
-  Object get mutationKey => id;
+  Mutation<String> get mutation => itemUpdateFormMutation(id);
 
   Future<String> save() {
     return submit((tx, form) async {

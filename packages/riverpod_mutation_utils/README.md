@@ -28,7 +28,7 @@ Runtime package:
 
 ```yaml
 dependencies:
-  riverpod_mutation_utils: ^0.3.4
+  riverpod_mutation_utils: ^0.4.0
 ```
 
 If you use `riverpod_annotation`, also add:
@@ -46,7 +46,7 @@ If you want generated mutation wiring, also add:
 
 ```yaml
 dev_dependencies:
-  riverpod_mutation_utils_generator: ^0.3.4
+  riverpod_mutation_utils_generator: ^0.4.0
 ```
 
 ## Quick Start
@@ -134,7 +134,7 @@ class ManualCounterSave extends _$ManualCounterSave
   int build() => 0;
 
   @override
-  Mutation<int> get mutationBase => counterSaveMutation;
+  Mutation<int> get mutation => counterSaveMutation;
 
   Future<int> save() {
     return submit((tx, form) async => form + 1);
@@ -165,10 +165,7 @@ class ManualItemUpdateForm extends _$ManualItemUpdateForm
   String build(String id) => id;
 
   @override
-  Mutation<String> get mutationBase => itemUpdateFormMutationBase;
-
-  @override
-  Object get mutationKey => id;
+  Mutation<String> get mutation => itemUpdateFormMutation(id);
 
   Future<String> save() {
     return submit((tx, form) async {
@@ -182,8 +179,8 @@ See [example/manual_annotation_example.dart](/Users/kim/Development/Projects/MyP
 
 ## Generated Usage
 
-The companion generator package can generate `mutationBase`, `mutationKey`, and
-a public mutation accessor for you:
+The companion generator package can generate a stable mutation base, a keyed
+mutation accessor, and a convenience abstract base for you:
 
 Non-family:
 
@@ -195,8 +192,8 @@ part 'generated_non_family_example.g.dart';
 
 @generateMutation
 @riverpod
-class GeneratedCounterSave extends _$GeneratedCounterSave
-    with StateFormMixin<int, int>, _$GeneratedCounterSaveMutation {
+class GeneratedCounterSave extends _$GeneratedCounterSaveMutation
+    with StateFormMixin<int, int> {
   @override
   int build() => 0;
 
@@ -218,22 +215,22 @@ part 'item_update_form.g.dart';
 
 @generateMutation
 @riverpod
-class ItemUpdateForm extends _$ItemUpdateForm
-    with StateFormMixin<int, String>, _$ItemUpdateFormMutation {
+class ItemUpdateForm extends _$ItemUpdateFormMutation
+    with StateFormMixin<int, String> {
   @override
   int build(String id) => 0;
 }
 ```
 
-That generated mixin wires the correct keyed mutation automatically, and the
-generated top-level `itemUpdateFormMutation(...)` accessor can be watched from
-the UI.
+That generated base hides the wiring mixin while keeping
+`StateFormMixin<...>` explicit, and the generated top-level
+`itemUpdateFormMutation(...)` accessor can be watched from the UI.
 
 See [example/riverpod_mutation_utils_example.dart](/Users/kim/Development/Projects/MyPackages/riverpod_mutation_utils/packages/riverpod_mutation_utils/example/riverpod_mutation_utils_example.dart).
 
-When a family has multiple parameters, the generated `mutationKey` becomes a
-record of those arguments, so each parameter combination gets isolated mutation
-state. See [example/generated_multi_param_example.dart](/Users/kim/Development/Projects/MyPackages/riverpod_mutation_utils/packages/riverpod_mutation_utils/example/generated_multi_param_example.dart).
+When a family has multiple parameters, the generated accessor keys mutations by
+a Dart record of those arguments, so each parameter combination gets isolated
+mutation state. See [example/generated_multi_param_example.dart](/Users/kim/Development/Projects/MyPackages/riverpod_mutation_utils/packages/riverpod_mutation_utils/example/generated_multi_param_example.dart).
 
 `submit(...)` keeps the submitting provider alive while the mutation is pending,
 which makes `afterSuccess` safe to use with `ref` for the common auto-dispose
@@ -245,8 +242,8 @@ the original ref becomes unmounted and `afterSuccess` is skipped.
 - `run(tx, ...)` is the only place where `MutationTransaction` is guaranteed to
   be valid.
 - `afterSuccess` and `afterError` are post-transaction hooks.
-- Family providers must use keyed mutations. Use `mutationKey` manually or
-  prefer `@generateMutation` so the key is derived automatically.
+- Family providers must return a keyed `mutation`. Prefer `@generateMutation`
+  so the accessor is derived automatically.
 - Multiple family parameters are keyed as a Dart record.
 - Mutation state is transient. Watch the mutation if the UI needs to reflect
   pending, success, or error states.
