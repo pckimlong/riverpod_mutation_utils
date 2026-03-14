@@ -1,3 +1,9 @@
+## 0.3.2
+
+- Switched the package to a git-only release model with `publish_to: none`.
+- Updated installation docs to use git tags instead of hosted pub versions.
+- Bumped the companion generator dependency to `0.3.2`.
+
 ## 0.3.1
 
 - Added generated usage examples for non-family, single-parameter family, and
