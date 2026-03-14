@@ -1,0 +1,14 @@
+targets:
+  $default:
+    builders:
+      riverpod_mutation_utils_generator:
+        enabled: true
+
+builders:
+  riverpod_mutation_utils_generator:
+    import: "package:riverpod_mutation_utils_generator/riverpod_mutation_utils_generator.dart"
+    builder_factories: ["mutationBuilder"]
+    build_extensions: {".dart": [".mutation_utils.g.part"]}
+    auto_apply: dependents
+    build_to: cache
+    applies_builders: ["source_gen|combining_builder"]

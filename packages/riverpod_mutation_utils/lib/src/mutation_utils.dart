@@ -3,6 +3,12 @@ import 'dart:async';
 import 'package:riverpod/experimental/mutation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+class GenerateMutation {
+  const GenerateMutation();
+}
+
+const generateMutation = GenerateMutation();
+
 typedef MutationChangedCallback<Result> =
     void Function(MutationState<Result>? previous, MutationState<Result> next);
 
@@ -58,11 +64,7 @@ class MutationRunner<Result> {
     if (_registeredMutationDisposals.add(mutation)) {
       final container = ref.container;
       ref.onDispose(() {
-        unawaited(
-          Future<void>(() {
-            _resetMutationSafely(mutation, container);
-          }),
-        );
+        _resetMutationSafely(mutation, container);
       });
     }
   }
@@ -94,23 +96,33 @@ class MutationRunner<Result> {
     Mutation<Result> mutation,
     Future<Result> Function(MutationTransaction tx) run, {
     // Runs after the mutation transaction has completed and closed.
+    // This callback is skipped if the submitting provider was unmounted
+    // before completion. The runner keeps the provider alive while pending to
+    // avoid plain auto-dispose, but explicit invalidation/rebuilds can still
+    // unmount the original ref.
     FutureOr<void> Function(Result result)? afterSuccess,
     FutureOr<void> Function(Object error, StackTrace stackTrace)? afterError,
   }) async {
     ensureMutationResetOnDispose(ref, mutation);
     if (_inFlight != null) return _inFlight!;
 
+    final keepAliveLink = ref.keepAlive();
     final future = mutation.run(ref, run);
     _inFlight = future;
 
     try {
       final result = await future;
-      await afterSuccess?.call(result);
+      if (ref.mounted) {
+        await afterSuccess?.call(result);
+      }
       return result;
     } catch (error, stackTrace) {
-      await afterError?.call(error, stackTrace);
+      if (ref.mounted) {
+        await afterError?.call(error, stackTrace);
+      }
       rethrow;
     } finally {
+      keepAliveLink.close();
       _inFlight = null;
     }
   }
@@ -121,7 +133,13 @@ mixin StateFormMixin<FormState, Result> on $Notifier<FormState> {
   final _runner = MutationRunner<Result>();
 
   FormState get _formState => state;
-  Mutation<Result> get mutation;
+  Mutation<Result> get mutationBase;
+  Object? get mutationKey => null;
+  Mutation<Result> get mutation {
+    final key = mutationKey;
+    if (key == null) return mutationBase;
+    return mutationBase(key);
+  }
 
   void listenMutation({
     MutationChangedCallback<Result>? onChanged,
@@ -161,7 +179,13 @@ mixin StateFormMixin<FormState, Result> on $Notifier<FormState> {
 mixin AsyncStateFormMixin<FormState, Result> on $AsyncNotifier<FormState> {
   final _runner = MutationRunner<Result>();
 
-  Mutation<Result> get mutation;
+  Mutation<Result> get mutationBase;
+  Object? get mutationKey => null;
+  Mutation<Result> get mutation {
+    final key = mutationKey;
+    if (key == null) return mutationBase;
+    return mutationBase(key);
+  }
 
   FormState get _formState {
     if (!state.hasValue) {
@@ -212,7 +236,13 @@ mixin AsyncStateFormMixin<FormState, Result> on $AsyncNotifier<FormState> {
 mixin MutationActionMixin<Result> on $Notifier<MutationState<Result>> {
   final _runner = MutationRunner<Result>();
 
-  Mutation<Result> get mutation;
+  Mutation<Result> get mutationBase;
+  Object? get mutationKey => null;
+  Mutation<Result> get mutation {
+    final key = mutationKey;
+    if (key == null) return mutationBase;
+    return mutationBase(key);
+  }
 
   Future<Result> submitAction(
     Future<Result> Function(MutationTransaction tx) run, {
