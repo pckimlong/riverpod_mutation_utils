@@ -1,3 +1,7 @@
+## 0.5.0
+
+- Bump the runtime package dependency to `0.5.0`.
+
 ## 0.4.0
 
 - Breaking: generate provider `mutation` overrides instead of `mutationBase`

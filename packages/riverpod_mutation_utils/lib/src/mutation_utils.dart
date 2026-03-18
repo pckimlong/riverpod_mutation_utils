@@ -220,8 +220,11 @@ mixin AsyncStateFormMixin<FormState, Result> on $AsyncNotifier<FormState> {
   }
 }
 
-/// Shared helper for providers that trigger mutations without form state.
-mixin MutationActionMixin<Result> on $Notifier<MutationState<Result>> {
+/// Shared helper for action-only providers with no own state.
+///
+/// Providers using this mixin should return `void` from `build()` and expose
+/// mutation progress by watching the separate [mutation] accessor.
+mixin MutationActionMixin<Result> on $Notifier<void> {
   final _runner = MutationRunner<Result>();
 
   Mutation<Result> get mutation;

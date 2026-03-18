@@ -28,7 +28,7 @@ Runtime package:
 
 ```yaml
 dependencies:
-  riverpod_mutation_utils: ^0.4.0
+  riverpod_mutation_utils: ^0.5.0
 ```
 
 If you use `riverpod_annotation`, also add:
@@ -46,7 +46,7 @@ If you want generated mutation wiring, also add:
 
 ```yaml
 dev_dependencies:
-  riverpod_mutation_utils_generator: ^0.4.0
+  riverpod_mutation_utils_generator: ^0.5.0
 ```
 
 ## Quick Start
@@ -55,6 +55,7 @@ Pick one integration level:
 
 - `MutationRunner` if you are not using `riverpod_annotation`
 - `StateFormMixin` / `AsyncStateFormMixin` if you want handwritten mutation wiring
+- `MutationActionMixin` if you want an action-only provider with no own state
 - `@generateMutation` if you want family-safe mutation wiring generated for you
 
 The common shape is:
@@ -77,6 +78,9 @@ if (mutation is MutationPending<String>) {
 side effects that can safely use `ref` when the submitting provider is still
 mounted. If a provider write is part of the mutation itself, keep it inside the
 `run(tx, ...)` callback instead of `afterSuccess`.
+
+Action-only providers should return `void` from `build()` and expose mutation
+progress by watching the separate `Mutation<Result>`.
 
 ## Direct Runner Usage
 
@@ -177,6 +181,31 @@ class ManualItemUpdateForm extends _$ManualItemUpdateForm
 
 See [example/manual_annotation_example.dart](/Users/kim/Development/Projects/MyPackages/riverpod_mutation_utils/packages/riverpod_mutation_utils/example/manual_annotation_example.dart).
 
+Action-only:
+
+```dart
+import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:riverpod_mutation_utils/riverpod_mutation_utils.dart';
+
+part 'manual_action_example.g.dart';
+
+final counterSaveMutation = Mutation<int>();
+
+@riverpod
+class ManualCounterAction extends _$ManualCounterAction
+    with MutationActionMixin<int> {
+  @override
+  void build() {}
+
+  @override
+  Mutation<int> get mutation => counterSaveMutation;
+
+  Future<int> save() {
+    return submitAction((tx) async => 1);
+  }
+}
+```
+
 ## Generated Usage
 
 The companion generator package can generate a stable mutation base, a keyed
@@ -242,6 +271,7 @@ the original ref becomes unmounted and `afterSuccess` is skipped.
 - `run(tx, ...)` is the only place where `MutationTransaction` is guaranteed to
   be valid.
 - `afterSuccess` and `afterError` are post-transaction hooks.
+- `MutationActionMixin` is for `Notifier<void>` providers only.
 - Family providers must return a keyed `mutation`. Prefer `@generateMutation`
   so the accessor is derived automatically.
 - Multiple family parameters are keyed as a Dart record.

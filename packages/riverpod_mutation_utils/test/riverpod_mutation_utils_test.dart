@@ -11,10 +11,15 @@ final _counterProvider = NotifierProvider<_CounterNotifier, int>(
 final _eventLogProvider = NotifierProvider<_EventLogNotifier, List<String>>(
   _EventLogNotifier.new,
 );
+final _voidActionMutation = Mutation<int>();
 var _autoDisposeSubmitterDisposeCount = 0;
 final _autoDisposeSubmitterProvider =
     NotifierProvider.autoDispose<_AutoDisposeSubmitter, int>(
       _AutoDisposeSubmitter.new,
+    );
+final _voidActionSubmitterProvider =
+    NotifierProvider.autoDispose<_VoidActionSubmitter, void>(
+      _VoidActionSubmitter.new,
     );
 final _sharedFamilySubmitterProvider =
     NotifierProvider.family<_SharedFamilySubmitter, int, String>(
@@ -73,6 +78,28 @@ class _AutoDisposeSubmitter extends Notifier<int> {
       (tx) => completer.future,
       afterError: (error, stackTrace) {
         ref.read(_eventLogProvider.notifier).add('error:$error');
+      },
+    );
+  }
+}
+
+class _VoidActionSubmitter extends Notifier<void>
+    with MutationActionMixin<int> {
+  @override
+  Mutation<int> get mutation => _voidActionMutation;
+
+  @override
+  void build() {
+    ref.onDispose(() {
+      _autoDisposeSubmitterDisposeCount++;
+    });
+  }
+
+  Future<int> submitWithProviderSideEffect(Completer<int> completer) {
+    return submitAction(
+      (tx) => completer.future,
+      afterSuccess: (result) {
+        ref.read(_counterProvider.notifier).incrementBy(result);
       },
     );
   }
@@ -375,6 +402,37 @@ void main() {
       completer.completeError(StateError('boom'));
       await expectLater(future, throwsA(isA<StateError>()));
       expect(container.read(_eventLogProvider), isEmpty);
+    });
+
+    test('MutationActionMixin works with action-only void notifiers', () async {
+      final container = ProviderContainer.test();
+      addTearDown(container.dispose);
+      _autoDisposeSubmitterDisposeCount = 0;
+
+      final mutationSub = container.listen(
+        _voidActionMutation,
+        (_, _) {},
+        fireImmediately: true,
+      );
+      addTearDown(mutationSub.close);
+
+      final completer = Completer<int>();
+      final future = container
+          .read(_voidActionSubmitterProvider.notifier)
+          .submitWithProviderSideEffect(completer);
+
+      await container.pump();
+      expect(_autoDisposeSubmitterDisposeCount, 0);
+      expect(mutationSub.read(), isA<MutationPending<int>>());
+
+      completer.complete(11);
+      expect(await future, 11);
+      expect(container.read(_counterProvider), 11);
+      expect(mutationSub.read(), isA<MutationSuccess<int>>());
+      expect((mutationSub.read() as MutationSuccess<int>).value, 11);
+
+      await container.pump();
+      expect(_autoDisposeSubmitterDisposeCount, 1);
     });
 
     test('allows a new submit after a failed submit', () async {

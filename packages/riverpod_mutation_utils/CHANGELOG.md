@@ -1,3 +1,10 @@
+## 0.5.0
+
+- Breaking: `MutationActionMixin<Result>` now requires `Notifier<void>` so
+  action-only providers cannot use `MutationState<Result>` as their own state.
+  Watch the separate mutation accessor for pending/success/error instead.
+- Bump the companion generator dependency to `0.5.0`.
+
 ## 0.4.0
 
 - Breaking: simplify runtime mixins to require a single `mutation` getter
