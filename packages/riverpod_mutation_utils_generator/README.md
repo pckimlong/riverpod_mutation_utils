@@ -13,12 +13,12 @@ This package generates:
 ```yaml
 dependencies:
   riverpod_annotation: ^4.0.2
-  riverpod_mutation_utils: ^0.4.0
+  riverpod_mutation_utils: ^0.5.0
 
 dev_dependencies:
   build_runner: ^2.7.1
   riverpod_generator: ^4.0.2
-  riverpod_mutation_utils_generator: ^0.4.0
+  riverpod_mutation_utils_generator: ^0.5.0
 ```
 
 ## Usage
