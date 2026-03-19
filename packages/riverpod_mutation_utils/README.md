@@ -28,7 +28,7 @@ Runtime package:
 
 ```yaml
 dependencies:
-  riverpod_mutation_utils: ^0.5.0
+  riverpod_mutation_utils: ^0.5.1
 ```
 
 If you use `riverpod_annotation`, also add:
@@ -46,7 +46,7 @@ If you want generated mutation wiring, also add:
 
 ```yaml
 dev_dependencies:
-  riverpod_mutation_utils_generator: ^0.5.0
+  riverpod_mutation_utils_generator: ^0.5.1
 ```
 
 ## Quick Start
@@ -195,9 +195,6 @@ final counterSaveMutation = Mutation<int>();
 class ManualCounterAction extends _$ManualCounterAction
     with MutationActionMixin<int> {
   @override
-  void build() {}
-
-  @override
   Mutation<int> get mutation => counterSaveMutation;
 
   Future<int> save() {
@@ -271,7 +268,9 @@ the original ref becomes unmounted and `afterSuccess` is skipped.
 - `run(tx, ...)` is the only place where `MutationTransaction` is guaranteed to
   be valid.
 - `afterSuccess` and `afterError` are post-transaction hooks.
-- `MutationActionMixin` is for `Notifier<void>` providers only.
+- `MutationActionMixin` is for `Notifier<void>` providers only. Non-family
+  providers can rely on its default empty `build()`, while family providers
+  still declare `build(...)` to expose their parameters.
 - Family providers must return a keyed `mutation`. Prefer `@generateMutation`
   so the accessor is derived automatically.
 - Multiple family parameters are keyed as a Dart record.

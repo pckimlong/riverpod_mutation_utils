@@ -21,6 +21,10 @@ final _voidActionSubmitterProvider =
     NotifierProvider.autoDispose<_VoidActionSubmitter, void>(
       _VoidActionSubmitter.new,
     );
+final _voidActionSubmitterWithoutBuildProvider =
+    NotifierProvider.autoDispose<_VoidActionSubmitterWithoutBuild, void>(
+      _VoidActionSubmitterWithoutBuild.new,
+    );
 final _sharedFamilySubmitterProvider =
     NotifierProvider.family<_SharedFamilySubmitter, int, String>(
       _SharedFamilySubmitter.new,
@@ -102,6 +106,16 @@ class _VoidActionSubmitter extends Notifier<void>
         ref.read(_counterProvider.notifier).incrementBy(result);
       },
     );
+  }
+}
+
+class _VoidActionSubmitterWithoutBuild extends Notifier<void>
+    with MutationActionMixin<int> {
+  @override
+  Mutation<int> get mutation => _voidActionMutation;
+
+  Future<int> submit(Completer<int> completer) {
+    return submitAction((tx) => completer.future);
   }
 }
 
@@ -434,6 +448,22 @@ void main() {
       await container.pump();
       expect(_autoDisposeSubmitterDisposeCount, 1);
     });
+
+    test(
+      'MutationActionMixin provides a default empty build for non-family action notifiers',
+      () async {
+        final container = ProviderContainer.test();
+        addTearDown(container.dispose);
+
+        final completer = Completer<int>();
+        final future = container
+            .read(_voidActionSubmitterWithoutBuildProvider.notifier)
+            .submit(completer);
+
+        completer.complete(13);
+        expect(await future, 13);
+      },
+    );
 
     test('allows a new submit after a failed submit', () async {
       final container = ProviderContainer.test();

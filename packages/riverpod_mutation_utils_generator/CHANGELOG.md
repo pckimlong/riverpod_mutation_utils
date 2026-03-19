@@ -1,3 +1,7 @@
+## 0.5.1
+
+- Bump the runtime package dependency to `0.5.1`.
+
 ## 0.5.0
 
 - Bump the runtime package dependency to `0.5.0`.
