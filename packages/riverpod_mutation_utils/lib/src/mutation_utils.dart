@@ -233,7 +233,6 @@ mixin MutationActionMixin<Result> on $Notifier<void> {
 
   Mutation<Result> get mutation;
 
-  @override
   void build() {}
 
   Future<Result> submitAction(
