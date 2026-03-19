@@ -224,10 +224,17 @@ mixin AsyncStateFormMixin<FormState, Result> on $AsyncNotifier<FormState> {
 ///
 /// Providers using this mixin should return `void` from `build()` and expose
 /// mutation progress by watching the separate [mutation] accessor.
+///
+/// Non-family notifiers can omit an empty `build()` override because this
+/// mixin provides a default no-op implementation. Family notifiers still need
+/// to declare `build(...)` so Riverpod can expose their parameters.
 mixin MutationActionMixin<Result> on $Notifier<void> {
   final _runner = MutationRunner<Result>();
 
   Mutation<Result> get mutation;
+
+  @override
+  void build() {}
 
   Future<Result> submitAction(
     Future<Result> Function(MutationTransaction tx) run, {
