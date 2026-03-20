@@ -1,7 +1,12 @@
+## 0.5.2
+
+- Revert the `0.5.1` `MutationActionMixin<Result>` default `build()` change.
+  Action providers must declare `build(...)` explicitly so family providers
+  keep their required parameter shape.
+- Bump the companion generator dependency to `0.5.2`.
+
 ## 0.5.1
 
-- Allow non-family `MutationActionMixin<Result>` providers to omit an empty
-  `build()` override by supplying a default no-op implementation in the mixin.
 - Bump the companion generator dependency to `0.5.1`.
 
 ## 0.5.0
