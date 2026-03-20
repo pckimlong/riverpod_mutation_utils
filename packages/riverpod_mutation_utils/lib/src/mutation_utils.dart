@@ -49,6 +49,15 @@ void _resetMutationSafely<Result>(
   }
 }
 
+void _scheduleMutationReset<Result>(
+  Mutation<Result> mutation,
+  MutationTarget target,
+) {
+  Future.microtask(() {
+    _resetMutationSafely(mutation, target);
+  });
+}
+
 /// Low-level helper for executing and observing Riverpod experimental
 /// [Mutation]s from provider code.
 ///
@@ -64,7 +73,7 @@ class MutationRunner<Result> {
     if (_registeredMutationDisposals.add(mutation)) {
       final container = ref.container;
       ref.onDispose(() {
-        _resetMutationSafely(mutation, container);
+        _scheduleMutationReset(mutation, container);
       });
     }
   }

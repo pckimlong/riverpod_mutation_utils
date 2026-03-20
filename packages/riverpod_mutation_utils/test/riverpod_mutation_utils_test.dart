@@ -11,6 +11,9 @@ final _counterProvider = NotifierProvider<_CounterNotifier, int>(
 final _eventLogProvider = NotifierProvider<_EventLogNotifier, List<String>>(
   _EventLogNotifier.new,
 );
+final _asyncDependencyProvider = FutureProvider.autoDispose<int>((ref) async {
+  return 1;
+});
 final _voidActionMutation = Mutation<int>();
 var _autoDisposeSubmitterDisposeCount = 0;
 final _autoDisposeSubmitterProvider =
@@ -28,6 +31,10 @@ final _sharedFamilySubmitterProvider =
 final _keyedFamilySubmitterProvider =
     NotifierProvider.family<_KeyedFamilySubmitter, int, String>(
       _KeyedFamilySubmitter.new,
+    );
+final _asyncInvalidateSubmitterProvider =
+    AsyncNotifierProvider.autoDispose<_AsyncInvalidateSubmitter, int>(
+      _AsyncInvalidateSubmitter.new,
     );
 
 class _CounterNotifier extends Notifier<int> {
@@ -134,6 +141,27 @@ class _KeyedFamilySubmitter extends Notifier<int> {
 
   Future<int> submit(Completer<int> completer) {
     return _runner.submitAction(ref, keyedMutation, (tx) => completer.future);
+  }
+}
+
+class _AsyncInvalidateSubmitter extends AsyncNotifier<int> {
+  static final mutation = Mutation<int>();
+  final _runner = MutationRunner<int>();
+
+  @override
+  Future<int> build() async {
+    return ref.watch(_asyncDependencyProvider.future);
+  }
+
+  Future<int> submitAndInvalidateDependency() {
+    return _runner.submitAction(
+      ref,
+      mutation,
+      (tx) async => 5,
+      afterSuccess: (_) {
+        ref.invalidate(_asyncDependencyProvider);
+      },
+    );
   }
 }
 
@@ -552,10 +580,55 @@ void main() {
 
       container.invalidate(_autoDisposeSubmitterProvider);
       await container.pump();
+      await Future<void>.delayed(Duration.zero);
       await container.pump();
 
       expect(mutationSub.read(), isA<MutationIdle<int>>());
     });
+
+    test(
+      'afterSuccess invalidation of a watched dependency does not throw and resets to idle',
+      () async {
+        final container = ProviderContainer.test();
+        addTearDown(container.dispose);
+
+        final providerSub = container.listen(
+          _asyncInvalidateSubmitterProvider,
+          (_, _) {},
+          fireImmediately: true,
+        );
+        final mutationSub = container.listen(
+          _AsyncInvalidateSubmitter.mutation,
+          (_, _) {},
+          fireImmediately: true,
+        );
+        addTearDown(providerSub.close);
+        addTearDown(mutationSub.close);
+
+        expect(
+          await container.read(_asyncInvalidateSubmitterProvider.future),
+          1,
+        );
+        expect(mutationSub.read(), isA<MutationIdle<int>>());
+
+        final result = await container
+            .read(_asyncInvalidateSubmitterProvider.notifier)
+            .submitAndInvalidateDependency();
+
+        expect(result, 5);
+        expect(mutationSub.read(), isA<MutationSuccess<int>>());
+
+        await container.pump();
+        await Future<void>.delayed(Duration.zero);
+        await container.pump();
+
+        expect(mutationSub.read(), isA<MutationIdle<int>>());
+        expect(
+          await container.read(_asyncInvalidateSubmitterProvider.future),
+          1,
+        );
+      },
+    );
 
     test(
       'family providers that reuse one mutation share pending and success state',

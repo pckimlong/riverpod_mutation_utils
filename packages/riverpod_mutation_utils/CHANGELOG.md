@@ -1,3 +1,12 @@
+## 0.5.3
+
+- Fix provider-disposal mutation reset timing by deferring `mutation.reset(...)`
+  out of `ref.onDispose`, which avoids illegal provider writes during
+  invalidation-driven rebuilds.
+- Add regression coverage for async submitters that invalidate watched
+  dependencies from `afterSuccess`.
+- Bump the companion generator dependency to `0.5.3`.
+
 ## 0.5.2
 
 - Revert the `0.5.1` `MutationActionMixin<Result>` default `build()` change.
