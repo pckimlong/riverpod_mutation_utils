@@ -7,7 +7,7 @@ inside [packages/riverpod_mutation_utils](/Users/kim/Development/Projects/MyPack
 before `dart analyze` or `dart test`. Example `.g.dart` files are generated in CI and are not committed.
 
 This package extracts the non-UI mutation layer so multiple apps can share:
-- reset-on-dispose mutation handling
+- configurable mutation reset handling
 - in-flight submit coalescing
 - sync and async form mixins
 - mutation-only action mixins
@@ -28,7 +28,7 @@ Runtime package:
 
 ```yaml
 dependencies:
-  riverpod_mutation_utils: ^0.5.3
+  riverpod_mutation_utils: ^0.5.4
 ```
 
 If you use `riverpod_annotation`, also add:
@@ -80,7 +80,10 @@ mounted. If a provider write is part of the mutation itself, keep it inside the
 `run(tx, ...)` callback instead of `afterSuccess`.
 
 Action-only providers should return `void` from `build()` and expose mutation
-progress by watching the separate `Mutation<Result>`.
+progress by watching the separate `Mutation<Result>`. They stay alive while a
+submission is pending, but do not automatically reset the mutation on provider
+dispose. Reset them explicitly with `mutation.reset(ref)` when the UI or a
+listener decides the transient state is no longer needed.
 
 ## Direct Runner Usage
 
@@ -266,12 +269,18 @@ which makes `afterSuccess` safe to use with `ref` for the common auto-dispose
 case. If the provider is explicitly invalidated or rebuilt before completion,
 the original ref becomes unmounted and `afterSuccess` is skipped.
 
+Form mixins keep the previous default of resetting their mutation on owner
+dispose. `MutationActionMixin` intentionally does not.
+
 ## Design Notes
 
 - `run(tx, ...)` is the only place where `MutationTransaction` is guaranteed to
   be valid.
 - `afterSuccess` and `afterError` are post-transaction hooks.
 - `MutationActionMixin` is for `Notifier<void>` providers only.
+- `MutationResetPolicy.onOwnerDispose` is the default for forms and direct
+  `MutationRunner()` usage.
+- `MutationResetPolicy.manual` is the default for `MutationActionMixin`.
 - Family providers must return a keyed `mutation`. Prefer `@generateMutation`
   so the accessor is derived automatically.
 - Multiple family parameters are keyed as a Dart record.
@@ -281,6 +290,7 @@ the original ref becomes unmounted and `afterSuccess` is skipped.
 ## API
 
 - `MutationRunner<Result>`
+- `MutationResetPolicy`
 - `StateFormMixin<FormState, Result>`
 - `AsyncStateFormMixin<FormState, Result>`
 - `MutationActionMixin<Result>`

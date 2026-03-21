@@ -15,6 +15,15 @@ typedef MutationChangedCallback<Result> =
 typedef MutationSuccessCallback<Result> =
     void Function(MutationState<Result>? previous, Result result);
 
+/// Controls who owns resetting a mutation back to idle.
+enum MutationResetPolicy {
+  /// Reset when the provider that submitted/listens to the mutation is disposed.
+  onOwnerDispose,
+
+  /// Never reset automatically. Call `mutation.reset(...)` explicitly.
+  manual,
+}
+
 void _listenMutationImpl<Result>(
   Ref ref,
   Mutation<Result> mutation, {
@@ -62,20 +71,29 @@ void _scheduleMutationReset<Result>(
 /// [Mutation]s from provider code.
 ///
 /// This runner is intentionally small:
-/// - ensures mutation state is reset on provider disposal
+/// - optionally resets mutation state on provider disposal
 /// - coalesces concurrent submissions into the same in-flight [Future]
 /// - forwards mutation success/error events via [listenMutation]
 class MutationRunner<Result> {
+  MutationRunner({this.resetPolicy = MutationResetPolicy.onOwnerDispose});
+
+  final MutationResetPolicy resetPolicy;
   Future<Result>? _inFlight;
   final _registeredMutationDisposals = <Object>{};
 
   void ensureMutationResetOnDispose(Ref ref, Mutation<Result> mutation) {
+    if (resetPolicy != MutationResetPolicy.onOwnerDispose) return;
+
     if (_registeredMutationDisposals.add(mutation)) {
       final container = ref.container;
       ref.onDispose(() {
         _scheduleMutationReset(mutation, container);
       });
     }
+  }
+
+  void reset(Ref ref, Mutation<Result> mutation) {
+    _resetMutationSafely(mutation, ref.container);
   }
 
   void listenMutation(
@@ -139,7 +157,9 @@ class MutationRunner<Result> {
 
 /// Shared helper for provider forms backed by sync build state.
 mixin StateFormMixin<FormState, Result> on $Notifier<FormState> {
-  final _runner = MutationRunner<Result>();
+  final _runner = MutationRunner<Result>(
+    resetPolicy: MutationResetPolicy.onOwnerDispose,
+  );
 
   FormState get _formState => state;
   Mutation<Result> get mutation;
@@ -176,11 +196,17 @@ mixin StateFormMixin<FormState, Result> on $Notifier<FormState> {
       afterError: afterError,
     );
   }
+
+  void resetMutation() {
+    _runner.reset(ref, mutation);
+  }
 }
 
 /// Shared helper for provider forms backed by async build state.
 mixin AsyncStateFormMixin<FormState, Result> on $AsyncNotifier<FormState> {
-  final _runner = MutationRunner<Result>();
+  final _runner = MutationRunner<Result>(
+    resetPolicy: MutationResetPolicy.onOwnerDispose,
+  );
 
   Mutation<Result> get mutation;
 
@@ -227,6 +253,10 @@ mixin AsyncStateFormMixin<FormState, Result> on $AsyncNotifier<FormState> {
       afterError: afterError,
     );
   }
+
+  void resetMutation() {
+    _runner.reset(ref, mutation);
+  }
 }
 
 /// Shared helper for action-only providers with no own state.
@@ -234,7 +264,9 @@ mixin AsyncStateFormMixin<FormState, Result> on $AsyncNotifier<FormState> {
 /// Providers using this mixin should return `void` from `build()` and expose
 /// mutation progress by watching the separate [mutation] accessor.
 mixin MutationActionMixin<Result> on $Notifier<void> {
-  final _runner = MutationRunner<Result>();
+  final _runner = MutationRunner<Result>(
+    resetPolicy: MutationResetPolicy.manual,
+  );
 
   Mutation<Result> get mutation;
 
@@ -250,5 +282,9 @@ mixin MutationActionMixin<Result> on $Notifier<void> {
       afterSuccess: afterSuccess,
       afterError: afterError,
     );
+  }
+
+  void resetMutation() {
+    _runner.reset(ref, mutation);
   }
 }

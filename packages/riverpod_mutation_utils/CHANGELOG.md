@@ -1,3 +1,13 @@
+## 0.5.4
+
+- Change `MutationActionMixin` so action-only providers keep the owner alive
+  while pending but no longer reset mutation state automatically on owner
+  dispose.
+- Add `MutationResetPolicy` and `MutationRunner.reset(...)` so reset ownership
+  can be explicit and action mutations can be reset manually or by listeners.
+- Keep `StateFormMixin` and `AsyncStateFormMixin` on reset-on-owner-dispose by
+  default.
+
 ## 0.5.3
 
 - Fix provider-disposal mutation reset timing by deferring `mutation.reset(...)`
