@@ -461,6 +461,8 @@ void main() {
 
       await container.pump();
       expect(_autoDisposeSubmitterDisposeCount, 1);
+      expect(mutationSub.read(), isA<MutationSuccess<int>>());
+      expect((mutationSub.read() as MutationSuccess<int>).value, 11);
     });
 
     test('allows a new submit after a failed submit', () async {
@@ -585,6 +587,62 @@ void main() {
 
       expect(mutationSub.read(), isA<MutationIdle<int>>());
     });
+
+    test(
+      'MutationActionMixin does not reset the mutation when the owner is disposed',
+      () async {
+        final container = ProviderContainer.test();
+        addTearDown(container.dispose);
+
+        final mutationSub = container.listen(
+          _voidActionMutation,
+          (_, _) {},
+          fireImmediately: true,
+        );
+        addTearDown(mutationSub.close);
+
+        final completer = Completer<int>()..complete(13);
+        final result = await container
+            .read(_voidActionSubmitterProvider.notifier)
+            .submitWithProviderSideEffect(completer);
+
+        expect(result, 13);
+        expect(mutationSub.read(), isA<MutationSuccess<int>>());
+
+        await container.pump();
+
+        expect(mutationSub.read(), isA<MutationSuccess<int>>());
+        expect((mutationSub.read() as MutationSuccess<int>).value, 13);
+      },
+    );
+
+    test(
+      'action mutations can be reset manually after owner disposal',
+      () async {
+        final container = ProviderContainer.test();
+        addTearDown(container.dispose);
+
+        final mutationSub = container.listen(
+          _voidActionMutation,
+          (_, _) {},
+          fireImmediately: true,
+        );
+        addTearDown(mutationSub.close);
+
+        final completer = Completer<int>()..complete(14);
+        final result = await container
+            .read(_voidActionSubmitterProvider.notifier)
+            .submitWithProviderSideEffect(completer);
+
+        expect(result, 14);
+        expect(mutationSub.read(), isA<MutationSuccess<int>>());
+
+        await container.pump();
+        _voidActionMutation.reset(container);
+
+        expect(mutationSub.read(), isA<MutationIdle<int>>());
+      },
+    );
 
     test(
       'afterSuccess invalidation of a watched dependency does not throw and resets to idle',
