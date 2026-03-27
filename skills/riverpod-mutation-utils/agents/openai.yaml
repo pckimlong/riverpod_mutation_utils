@@ -1,0 +1,4 @@
+interface:
+  display_name: "Riverpod Mutation Utils"
+  short_description: "Riverpod mutation wiring and patterns"
+  default_prompt: "Use $riverpod-mutation-utils to add or debug mutation wiring in this Riverpod codebase."

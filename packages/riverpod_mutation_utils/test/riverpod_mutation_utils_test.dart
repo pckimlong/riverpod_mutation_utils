@@ -15,14 +15,24 @@ final _asyncDependencyProvider = FutureProvider.autoDispose<int>((ref) async {
   return 1;
 });
 final _voidActionMutation = Mutation<int>();
+final _stateFormMutation = Mutation<int>();
+final _asyncStateFormMutation = Mutation<int>();
 var _autoDisposeSubmitterDisposeCount = 0;
 final _autoDisposeSubmitterProvider =
     NotifierProvider.autoDispose<_AutoDisposeSubmitter, int>(
       _AutoDisposeSubmitter.new,
     );
+final _stateFormSubmitterProvider =
+    NotifierProvider.autoDispose<_StateFormSubmitter, int>(
+      _StateFormSubmitter.new,
+    );
 final _voidActionSubmitterProvider =
     NotifierProvider.autoDispose<_VoidActionSubmitter, void>(
       _VoidActionSubmitter.new,
+    );
+final _asyncStateFormSubmitterProvider =
+    AsyncNotifierProvider.autoDispose<_AsyncStateFormSubmitter, int>(
+      _AsyncStateFormSubmitter.new,
     );
 final _sharedFamilySubmitterProvider =
     NotifierProvider.family<_SharedFamilySubmitter, int, String>(
@@ -109,6 +119,40 @@ class _VoidActionSubmitter extends Notifier<void>
         ref.read(_counterProvider.notifier).incrementBy(result);
       },
     );
+  }
+}
+
+class _StateFormSubmitter extends Notifier<int> with StateFormMixin<int, int> {
+  @override
+  int build() => 0;
+
+  @override
+  Mutation<int> get mutation => _stateFormMutation;
+
+  Future<int> save() {
+    return submit((tx, form) async {
+      await Future<void>.delayed(Duration.zero);
+      state = form + 1;
+      return state;
+    });
+  }
+}
+
+class _AsyncStateFormSubmitter extends AsyncNotifier<int>
+    with AsyncStateFormMixin<int, int> {
+  @override
+  Future<int> build() async => 0;
+
+  @override
+  Mutation<int> get mutation => _asyncStateFormMutation;
+
+  Future<int> save() {
+    return submit((tx, form) async {
+      await Future<void>.delayed(Duration.zero);
+      final next = form + 1;
+      state = AsyncData(next);
+      return next;
+    });
   }
 }
 
@@ -465,6 +509,55 @@ void main() {
       expect((mutationSub.read() as MutationSuccess<int>).value, 11);
     });
 
+    test('StateFormMixin resets mutations via resetMutation()', () async {
+      final container = ProviderContainer.test();
+      addTearDown(container.dispose);
+
+      final mutationSub = container.listen(
+        _stateFormMutation,
+        (_, _) {},
+        fireImmediately: true,
+      );
+      addTearDown(mutationSub.close);
+
+      final notifier = container.read(_stateFormSubmitterProvider.notifier);
+      final result = await notifier.save();
+
+      expect(result, 1);
+      expect(mutationSub.read(), isA<MutationSuccess<int>>());
+      expect((mutationSub.read() as MutationSuccess<int>).value, 1);
+
+      notifier.resetMutation();
+
+      expect(mutationSub.read(), isA<MutationIdle<int>>());
+    });
+
+    test('AsyncStateFormMixin resets mutations via resetMutation()', () async {
+      final container = ProviderContainer.test();
+      addTearDown(container.dispose);
+
+      final mutationSub = container.listen(
+        _asyncStateFormMutation,
+        (_, _) {},
+        fireImmediately: true,
+      );
+      addTearDown(mutationSub.close);
+
+      await container.read(_asyncStateFormSubmitterProvider.future);
+      final notifier = container.read(
+        _asyncStateFormSubmitterProvider.notifier,
+      );
+      final result = await notifier.save();
+
+      expect(result, 1);
+      expect(mutationSub.read(), isA<MutationSuccess<int>>());
+      expect((mutationSub.read() as MutationSuccess<int>).value, 1);
+
+      notifier.resetMutation();
+
+      expect(mutationSub.read(), isA<MutationIdle<int>>());
+    });
+
     test('allows a new submit after a failed submit', () async {
       final container = ProviderContainer.test();
       addTearDown(container.dispose);
@@ -643,6 +736,30 @@ void main() {
         expect(mutationSub.read(), isA<MutationIdle<int>>());
       },
     );
+
+    test('MutationActionMixin resets mutations via resetMutation()', () async {
+      final container = ProviderContainer.test();
+      addTearDown(container.dispose);
+
+      final mutationSub = container.listen(
+        _voidActionMutation,
+        (_, _) {},
+        fireImmediately: true,
+      );
+      addTearDown(mutationSub.close);
+
+      final notifier = container.read(_voidActionSubmitterProvider.notifier);
+      final completer = Completer<int>()..complete(15);
+      final result = await notifier.submitWithProviderSideEffect(completer);
+
+      expect(result, 15);
+      expect(mutationSub.read(), isA<MutationSuccess<int>>());
+      expect((mutationSub.read() as MutationSuccess<int>).value, 15);
+
+      notifier.resetMutation();
+
+      expect(mutationSub.read(), isA<MutationIdle<int>>());
+    });
 
     test(
       'afterSuccess invalidation of a watched dependency does not throw and resets to idle',
