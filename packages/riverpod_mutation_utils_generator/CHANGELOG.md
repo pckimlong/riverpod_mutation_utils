@@ -1,3 +1,9 @@
+## 0.5.4
+
+- Relax the `analyzer` constraint to support `riverpod_generator 4.0.4`, which
+  depends on `analyzer ^12.0.0`.
+- Bump the runtime package dependency to `0.5.4`.
+
 ## 0.5.3
 
 - Bump the runtime package dependency to `0.5.3`.

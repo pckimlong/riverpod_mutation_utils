@@ -12,13 +12,13 @@ This package generates:
 
 ```yaml
 dependencies:
-  riverpod_annotation: ^4.0.2
-  riverpod_mutation_utils: ^0.5.3
+  riverpod_annotation: ^4.0.3
+  riverpod_mutation_utils: ^0.5.4
 
 dev_dependencies:
   build_runner: ^2.7.1
-  riverpod_generator: ^4.0.2
-  riverpod_mutation_utils_generator: ^0.5.3
+  riverpod_generator: ^4.0.4
+  riverpod_mutation_utils_generator: ^0.5.4
 ```
 
 ## Usage
@@ -48,7 +48,7 @@ class ItemUpdateForm extends _$ItemUpdateFormMutation
 Then run:
 
 ```sh
-dart run build_runner build --delete-conflicting-outputs
+dart run build_runner build
 ```
 
 The generator emits:
