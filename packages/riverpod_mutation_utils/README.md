@@ -2,7 +2,7 @@
 
 Runtime helpers, annotations, and mixins for Riverpod experimental mutations.
 
-For local development in this package, run `dart run build_runner build`
+For local development in this package, run `dart run build_runner build --delete-conflicting-outputs`
 inside [packages/riverpod_mutation_utils](/Users/kim/Development/Projects/MyPackages/riverpod_mutation_utils/packages/riverpod_mutation_utils)
 before `dart analyze` or `dart test`. Example `.g.dart` files are generated in CI and are not committed.
 
@@ -35,18 +35,18 @@ If you use `riverpod_annotation`, also add:
 
 ```yaml
 dependencies:
-  riverpod_annotation: ^4.0.3
+  riverpod_annotation: ^4.0.2
 
 dev_dependencies:
   build_runner: ^2.7.1
-  riverpod_generator: ^4.0.4
+  riverpod_generator: ^4.0.2
 ```
 
 If you want generated mutation wiring, also add:
 
 ```yaml
 dev_dependencies:
-  riverpod_mutation_utils_generator: ^0.5.4
+  riverpod_mutation_utils_generator: ^0.5.3
 ```
 
 ## Quick Start
