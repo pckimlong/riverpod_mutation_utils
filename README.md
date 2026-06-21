@@ -17,14 +17,6 @@ cd packages/riverpod_mutation_utils && dart test
 cd packages/riverpod_mutation_utils_generator && dart test
 ```
 
-## Maintenance
-
-The `Riverpod maintenance` workflow runs every two months and can also be
-started manually. It upgrades compatible dependencies, captures Riverpod
-mutation docs/changelog review links, runs generation/analyze/tests, writes
-`.github/maintenance/riverpod-maintenance-report.md`, and opens a draft PR for
-publish-readiness review.
-
 Install the bundled Codex skill from this repository with:
 
 ```sh
