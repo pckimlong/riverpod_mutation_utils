@@ -12,7 +12,7 @@ Common workspace commands:
 ```sh
 dart pub get
 dart format .
-cd packages/riverpod_mutation_utils && dart run build_runner build --delete-conflicting-outputs
+cd packages/riverpod_mutation_utils && dart run build_runner build
 cd packages/riverpod_mutation_utils && dart test
 cd packages/riverpod_mutation_utils_generator && dart test
 ```
