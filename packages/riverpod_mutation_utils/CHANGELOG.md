@@ -1,3 +1,8 @@
+## 0.5.5
+
+- Improve the pub.dev README by removing local development details and
+  refreshing installation guidance for the current companion generator version.
+
 ## 0.5.4
 
 - Change `MutationActionMixin` so action-only providers keep the owner alive

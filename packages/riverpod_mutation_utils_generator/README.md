@@ -13,12 +13,12 @@ This package generates:
 ```yaml
 dependencies:
   riverpod_annotation: ^4.0.3
-  riverpod_mutation_utils: ^0.5.4
+  riverpod_mutation_utils: ^0.5.5
 
 dev_dependencies:
   build_runner: ^2.7.1
   riverpod_generator: ^4.0.4
-  riverpod_mutation_utils_generator: ^0.5.4
+  riverpod_mutation_utils_generator: ^0.5.5
 ```
 
 ## Usage
@@ -60,9 +60,3 @@ The generator emits:
 
 Family providers are keyed automatically. If the family has multiple
 parameters, the generated accessor key becomes a record of those arguments.
-
-See:
-
-- [generated_non_family_example.dart](/Users/kim/Development/Projects/MyPackages/riverpod_mutation_utils/packages/riverpod_mutation_utils/example/generated_non_family_example.dart)
-- [riverpod_mutation_utils_example.dart](/Users/kim/Development/Projects/MyPackages/riverpod_mutation_utils/packages/riverpod_mutation_utils/example/riverpod_mutation_utils_example.dart)
-- [generated_multi_param_example.dart](/Users/kim/Development/Projects/MyPackages/riverpod_mutation_utils/packages/riverpod_mutation_utils/example/generated_multi_param_example.dart)

@@ -2,10 +2,6 @@
 
 Runtime helpers, annotations, and mixins for Riverpod experimental mutations.
 
-For local development in this package, run `dart run build_runner build --delete-conflicting-outputs`
-inside [packages/riverpod_mutation_utils](/Users/kim/Development/Projects/MyPackages/riverpod_mutation_utils/packages/riverpod_mutation_utils)
-before `dart analyze` or `dart test`. Example `.g.dart` files are generated in CI and are not committed.
-
 This package extracts the non-UI mutation layer so multiple apps can share:
 - configurable mutation reset handling
 - in-flight submit coalescing
@@ -28,25 +24,25 @@ Runtime package:
 
 ```yaml
 dependencies:
-  riverpod_mutation_utils: ^0.5.4
+  riverpod_mutation_utils: ^0.5.5
 ```
 
 If you use `riverpod_annotation`, also add:
 
 ```yaml
 dependencies:
-  riverpod_annotation: ^4.0.2
+  riverpod_annotation: ^4.0.3
 
 dev_dependencies:
   build_runner: ^2.7.1
-  riverpod_generator: ^4.0.2
+  riverpod_generator: ^4.0.4
 ```
 
 If you want generated mutation wiring, also add:
 
 ```yaml
 dev_dependencies:
-  riverpod_mutation_utils_generator: ^0.5.3
+  riverpod_mutation_utils_generator: ^0.5.5
 ```
 
 ## Quick Start
@@ -118,8 +114,6 @@ class CounterSaveController extends Notifier<int> {
 }
 ```
 
-See [example/manual_runner_example.dart](/Users/kim/Development/Projects/MyPackages/riverpod_mutation_utils/packages/riverpod_mutation_utils/example/manual_runner_example.dart).
-
 ## Manual Usage With `riverpod_annotation`
 
 This is still Riverpod codegen, but the mutation wiring is handwritten:
@@ -148,8 +142,6 @@ class ManualCounterSave extends _$ManualCounterSave
   }
 }
 ```
-
-See [example/manual_annotation_non_family_example.dart](/Users/kim/Development/Projects/MyPackages/riverpod_mutation_utils/packages/riverpod_mutation_utils/example/manual_annotation_non_family_example.dart).
 
 Family:
 
@@ -181,8 +173,6 @@ class ManualItemUpdateForm extends _$ManualItemUpdateForm
   }
 }
 ```
-
-See [example/manual_annotation_example.dart](/Users/kim/Development/Projects/MyPackages/riverpod_mutation_utils/packages/riverpod_mutation_utils/example/manual_annotation_example.dart).
 
 Action-only:
 
@@ -235,8 +225,6 @@ class GeneratedCounterSave extends _$GeneratedCounterSaveMutation
 }
 ```
 
-See [example/generated_non_family_example.dart](/Users/kim/Development/Projects/MyPackages/riverpod_mutation_utils/packages/riverpod_mutation_utils/example/generated_non_family_example.dart).
-
 Family:
 
 ```dart
@@ -258,11 +246,9 @@ That generated base hides the wiring mixin while keeping
 `StateFormMixin<...>` explicit, and the generated top-level
 `itemUpdateFormMutation(...)` accessor can be watched from the UI.
 
-See [example/riverpod_mutation_utils_example.dart](/Users/kim/Development/Projects/MyPackages/riverpod_mutation_utils/packages/riverpod_mutation_utils/example/riverpod_mutation_utils_example.dart).
-
 When a family has multiple parameters, the generated accessor keys mutations by
 a Dart record of those arguments, so each parameter combination gets isolated
-mutation state. See [example/generated_multi_param_example.dart](/Users/kim/Development/Projects/MyPackages/riverpod_mutation_utils/packages/riverpod_mutation_utils/example/generated_multi_param_example.dart).
+mutation state.
 
 `submit(...)` keeps the submitting provider alive while the mutation is pending,
 which makes `afterSuccess` safe to use with `ref` for the common auto-dispose

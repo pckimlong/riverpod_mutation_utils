@@ -1,3 +1,9 @@
+## 0.5.5
+
+- Improve the pub.dev README by removing local filesystem links and refreshing
+  installation guidance for the current runtime package version.
+- Bump the runtime package dependency to `0.5.5`.
+
 ## 0.5.4
 
 - Relax the `analyzer` constraint to support `riverpod_generator 4.0.4`, which
