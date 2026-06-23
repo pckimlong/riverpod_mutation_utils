@@ -1,6 +1,6 @@
 name: riverpod_mutation_utils
 description: Runtime helpers, annotations, and mixins for Riverpod experimental mutations.
-version: 0.5.5
+version: 0.5.6
 repository: https://github.com/pckimlong/riverpod_mutation_utils
 resolution: workspace
 

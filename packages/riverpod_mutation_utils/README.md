@@ -57,7 +57,9 @@ Pick one integration level:
 The common shape is:
 
 1. Define a stable `Mutation<Result>` base.
-2. Run the mutation with `submit(...)` or `submitAction(...)`.
+2. Run the mutation with `submit(...)` / `submitAction(...)`, or use the
+   state-returning variants when the caller wants mutation state instead of a
+   thrown error.
 3. Watch the mutation accessor from the UI.
 
 Example UI usage:
@@ -74,6 +76,16 @@ if (mutation is MutationPending<String>) {
 side effects that can safely use `ref` when the submitting provider is still
 mounted. If a provider write is part of the mutation itself, keep it inside the
 `run(tx, ...)` callback instead of `afterSuccess`.
+
+`submit(...)` and `submitAction(...)` intentionally behave like normal async
+functions: successful submissions return the mutation result, and failed
+submissions throw. The mutation state is still updated so UI can observe
+pending/success/error.
+
+If mutation state is the caller's success/error channel, use `submitState(...)`
+or `submitActionState(...)`. These methods return the final `MutationState`
+instead of throwing, which is useful for form widgets that render
+`MutationError` directly.
 
 Action-only providers should return `void` from `build()` and expose mutation
 progress by watching the separate `Mutation<Result>`. They stay alive while a
@@ -102,6 +114,18 @@ class CounterSaveController extends Notifier<int> {
 
   Future<int> save() {
     return _runner.submitAction(
+      ref,
+      saveCounterMutation,
+      (tx) async {
+        final next = state + 1;
+        state = next;
+        return next;
+      },
+    );
+  }
+
+  Future<MutationState<int>> saveAsState() {
+    return _runner.submitActionState(
       ref,
       saveCounterMutation,
       (tx) async {
@@ -196,6 +220,10 @@ class ManualCounterAction extends _$ManualCounterAction
   Future<int> save() {
     return submitAction((tx) async => 1);
   }
+
+  Future<MutationState<int>> saveAsState() {
+    return submitActionState((tx) async => 1);
+  }
 }
 ```
 
@@ -262,6 +290,9 @@ dispose. `MutationActionMixin` intentionally does not.
 
 - `run(tx, ...)` is the only place where `MutationTransaction` is guaranteed to
   be valid.
+- `submit(...)` and `submitAction(...)` return `Result` and rethrow failures.
+- `submitState(...)` and `submitActionState(...)` return the final
+  `MutationState<Result>` and do not rethrow failures.
 - `afterSuccess` and `afterError` are post-transaction hooks.
 - `MutationActionMixin` is for `Notifier<void>` providers only.
 - `MutationResetPolicy.onOwnerDispose` is the default for forms and direct

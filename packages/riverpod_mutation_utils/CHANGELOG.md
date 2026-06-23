@@ -1,3 +1,11 @@
+## 0.5.6
+
+- Add state-returning submission helpers: `MutationRunner.submitActionState`,
+  `StateFormMixin.submitState`, `AsyncStateFormMixin.submitState`, and
+  `MutationActionMixin.submitActionState`.
+- Document the difference between throwing result-returning submissions and
+  non-throwing mutation-state-returning submissions.
+
 ## 0.5.5
 
 - Improve the pub.dev README by removing local development details and
