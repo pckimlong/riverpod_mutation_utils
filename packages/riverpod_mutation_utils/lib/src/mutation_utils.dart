@@ -153,6 +153,35 @@ class MutationRunner<Result> {
       _inFlight = null;
     }
   }
+
+  /// Runs [run] like [submitAction], but returns the resulting mutation state.
+  ///
+  /// Use [submitAction] when the caller expects normal async function
+  /// semantics: successful submissions return [Result], and failed submissions
+  /// throw.
+  ///
+  /// Use [submitActionState] when mutation state is the caller's error/success
+  /// channel, such as form UIs that render [MutationError] and do not need a
+  /// thrown exception. This method still runs [afterSuccess] and [afterError],
+  /// but it does not rethrow failures from the action or those callbacks.
+  Future<MutationState<Result>> submitActionState(
+    Ref ref,
+    Mutation<Result> mutation,
+    Future<Result> Function(MutationTransaction tx) run, {
+    FutureOr<void> Function(Result result)? afterSuccess,
+    FutureOr<void> Function(Object error, StackTrace stackTrace)? afterError,
+  }) async {
+    try {
+      await submitAction(
+        ref,
+        mutation,
+        run,
+        afterSuccess: afterSuccess,
+        afterError: afterError,
+      );
+    } catch (_) {}
+    return ref.container.read(mutation);
+  }
 }
 
 /// Shared helper for provider forms backed by sync build state.
@@ -189,6 +218,22 @@ mixin StateFormMixin<FormState, Result> on $Notifier<FormState> {
     FutureOr<void> Function(Object error, StackTrace stackTrace)? afterError,
   }) {
     return _runner.submitAction(
+      ref,
+      mutation,
+      (tx) => run(tx, _formState),
+      afterSuccess: afterSuccess,
+      afterError: afterError,
+    );
+  }
+
+  /// Runs [run] like [submit], but returns [mutation]'s resulting state instead
+  /// of throwing on failure.
+  Future<MutationState<Result>> submitState(
+    Future<Result> Function(MutationTransaction tx, FormState form) run, {
+    FutureOr<void> Function(Result result)? afterSuccess,
+    FutureOr<void> Function(Object error, StackTrace stackTrace)? afterError,
+  }) {
+    return _runner.submitActionState(
       ref,
       mutation,
       (tx) => run(tx, _formState),
@@ -254,6 +299,22 @@ mixin AsyncStateFormMixin<FormState, Result> on $AsyncNotifier<FormState> {
     );
   }
 
+  /// Runs [run] like [submit], but returns [mutation]'s resulting state instead
+  /// of throwing on failure.
+  Future<MutationState<Result>> submitState(
+    Future<Result> Function(MutationTransaction tx, FormState form) run, {
+    FutureOr<void> Function(Result result)? afterSuccess,
+    FutureOr<void> Function(Object error, StackTrace stackTrace)? afterError,
+  }) {
+    return _runner.submitActionState(
+      ref,
+      mutation,
+      (tx) => run(tx, _formState),
+      afterSuccess: afterSuccess,
+      afterError: afterError,
+    );
+  }
+
   void resetMutation() {
     _runner.reset(ref, mutation);
   }
@@ -276,6 +337,22 @@ mixin MutationActionMixin<Result> on $Notifier<void> {
     FutureOr<void> Function(Object error, StackTrace stackTrace)? afterError,
   }) {
     return _runner.submitAction(
+      ref,
+      mutation,
+      run,
+      afterSuccess: afterSuccess,
+      afterError: afterError,
+    );
+  }
+
+  /// Runs [run] like [submitAction], but returns [mutation]'s resulting state
+  /// instead of throwing on failure.
+  Future<MutationState<Result>> submitActionState(
+    Future<Result> Function(MutationTransaction tx) run, {
+    FutureOr<void> Function(Result result)? afterSuccess,
+    FutureOr<void> Function(Object error, StackTrace stackTrace)? afterError,
+  }) {
+    return _runner.submitActionState(
       ref,
       mutation,
       run,

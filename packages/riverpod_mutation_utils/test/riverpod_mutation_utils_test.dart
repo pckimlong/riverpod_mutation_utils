@@ -110,6 +110,20 @@ class _VoidActionSubmitter extends Notifier<void>
       },
     );
   }
+
+  Future<MutationState<int>> submitStateWithProviderSideEffect(
+    Completer<int> completer,
+  ) {
+    return submitActionState(
+      (tx) => completer.future,
+      afterSuccess: (result) {
+        ref.read(_counterProvider.notifier).incrementBy(result);
+      },
+      afterError: (error, stackTrace) {
+        ref.read(_eventLogProvider.notifier).add('error:$error');
+      },
+    );
+  }
 }
 
 class _SharedFamilySubmitter extends Notifier<int> {
@@ -306,6 +320,57 @@ void main() {
       expect(afterErrorCalled, isFalse);
     });
 
+    test(
+      'submitActionState returns success state instead of raw result',
+      () async {
+        final container = ProviderContainer.test();
+        addTearDown(container.dispose);
+
+        final ref = container.read(_refProvider);
+        final mutation = Mutation<int>();
+        final runner = MutationRunner<int>();
+        var afterSuccessCalled = false;
+
+        final state = await runner.submitActionState(
+          ref,
+          mutation,
+          (tx) async => 21,
+          afterSuccess: (_) {
+            afterSuccessCalled = true;
+          },
+        );
+
+        expect(afterSuccessCalled, isTrue);
+        expect(state, isA<MutationSuccess<int>>());
+        expect((state as MutationSuccess<int>).value, 21);
+        expect(container.read(mutation), state);
+      },
+    );
+
+    test('submitActionState returns error state instead of throwing', () async {
+      final container = ProviderContainer.test();
+      addTearDown(container.dispose);
+
+      final ref = container.read(_refProvider);
+      final mutation = Mutation<int>();
+      final runner = MutationRunner<int>();
+      var afterErrorCalled = false;
+
+      final state = await runner.submitActionState(
+        ref,
+        mutation,
+        (tx) async => throw StateError('boom'),
+        afterError: (error, stackTrace) {
+          afterErrorCalled = true;
+        },
+      );
+
+      expect(afterErrorCalled, isTrue);
+      expect(state, isA<MutationError<int>>());
+      expect((state as MutationError<int>).error, isA<StateError>());
+      expect(container.read(mutation), state);
+    });
+
     test('awaits async success and error callbacks', () async {
       final container = ProviderContainer.test();
       addTearDown(container.dispose);
@@ -465,6 +530,41 @@ void main() {
       expect((mutationSub.read() as MutationSuccess<int>).value, 11);
     });
 
+    test(
+      'MutationActionMixin can return mutation state instead of throwing',
+      () async {
+        final container = ProviderContainer.test();
+        addTearDown(container.dispose);
+        _autoDisposeSubmitterDisposeCount = 0;
+
+        final mutationSub = container.listen(
+          _voidActionMutation,
+          (_, _) {},
+          fireImmediately: true,
+        );
+        addTearDown(mutationSub.close);
+
+        final completer = Completer<int>();
+        final future = container
+            .read(_voidActionSubmitterProvider.notifier)
+            .submitStateWithProviderSideEffect(completer);
+
+        await container.pump();
+        expect(_autoDisposeSubmitterDisposeCount, 0);
+        expect(mutationSub.read(), isA<MutationPending<int>>());
+
+        completer.completeError(StateError('boom'));
+
+        final state = await future;
+        expect(state, isA<MutationError<int>>());
+        expect(container.read(_eventLogProvider), ['error:Bad state: boom']);
+        expect(mutationSub.read(), same(state));
+
+        await container.pump();
+        expect(_autoDisposeSubmitterDisposeCount, 1);
+      },
+    );
+
     test('allows a new submit after a failed submit', () async {
       final container = ProviderContainer.test();
       addTearDown(container.dispose);
@@ -561,6 +661,32 @@ void main() {
 
       await expectLater(first, throwsA(isA<StateError>()));
       await expectLater(second, throwsA(isA<StateError>()));
+    });
+
+    test('coalesced submitActionState callers share the final state', () async {
+      final container = ProviderContainer.test();
+      addTearDown(container.dispose);
+
+      final ref = container.read(_refProvider);
+      final mutation = Mutation<int>();
+      final runner = MutationRunner<int>();
+      final completer = Completer<int>();
+
+      final first = runner.submitActionState(
+        ref,
+        mutation,
+        (tx) => completer.future,
+      );
+      final second = runner.submitActionState(ref, mutation, (tx) async => 99);
+
+      completer.completeError(StateError('boom'));
+
+      final firstState = await first;
+      final secondState = await second;
+
+      expect(firstState, isA<MutationError<int>>());
+      expect(secondState, same(firstState));
+      expect(container.read(mutation), same(firstState));
     });
 
     test('resets the mutation when the owning provider is disposed', () async {
