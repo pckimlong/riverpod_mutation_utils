@@ -1,313 +1,201 @@
 # riverpod_mutation_utils
 
+[![codecov](https://codecov.io/gh/pckimlong/riverpod_mutation_utils/graph/badge.svg?token=)](https://codecov.io/gh/pckimlong/riverpod_mutation_utils)
+
 Runtime helpers, annotations, and mixins for Riverpod experimental mutations.
 
-This package extracts the non-UI mutation layer so multiple apps can share:
-- configurable mutation reset handling
-- in-flight submit coalescing
-- sync and async form mixins
-- mutation-only action mixins
+This package provides a simple way to orchestrate mutation states (`idle`, `pending`, `success`, `error`) directly from Riverpod providers.
 
-## Scope
-
-This package is intentionally small. It does not include:
-- dialogs or pages
-- toasts or error banners
-- navigation helpers
-- form widgets
-
-Keep those concerns inside each app.
+---
 
 ## Install
 
-Runtime package:
+Run the following commands to install the runtime package and companion generator:
 
-```yaml
-dependencies:
-  riverpod_mutation_utils: ^0.5.5
+```sh
+# Add the runtime package to dependencies
+dart pub add riverpod_mutation_utils
+
+# Add build runner and the companion generator to dev_dependencies
+dart pub add dev:build_runner dev:riverpod_mutation_utils_generator
 ```
 
-If you use `riverpod_annotation`, also add:
+Or manually add them to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  riverpod_annotation: ^4.0.3
+  riverpod_mutation_utils: ^0.5.7
 
 dev_dependencies:
   build_runner: ^2.7.1
-  riverpod_generator: ^4.0.4
-```
-
-If you want generated mutation wiring, also add:
-
-```yaml
-dev_dependencies:
   riverpod_mutation_utils_generator: ^0.5.5
 ```
 
-## Quick Start
+---
 
-Pick one integration level:
+## Quick Start (The Standard Action Pattern)
 
-- `MutationRunner` if you are not using `riverpod_annotation`
-- `StateFormMixin` / `AsyncStateFormMixin` if you want handwritten mutation wiring
-- `MutationActionMixin` if you want an action-only provider with no own state
-- `@generateMutation` if you want family-safe mutation wiring generated for you
+Use **`MutationActionMixin`** for action-only providers (e.g., login, creating/updating records) that do not hold their own state.
 
-The common shape is:
+### 1. Define the Provider (Logic)
 
-1. Define a stable `Mutation<Result>` base.
-2. Run the mutation with `submit(...)` / `submitAction(...)`, or use the
-   state-returning variants when the caller wants mutation state instead of a
-   thrown error.
-3. Watch the mutation accessor from the UI.
-
-Example UI usage:
+Annotate your notifier with `@generateMutation` and mix in `MutationActionMixin`:
 
 ```dart
-final mutation = ref.watch(itemUpdateFormMutation('item-1'));
-
-if (mutation is MutationPending<String>) {
-  return const CircularProgressIndicator();
-}
-```
-
-`afterSuccess` runs after the transaction has closed. Use it for post-success
-side effects that can safely use `ref` when the submitting provider is still
-mounted. If a provider write is part of the mutation itself, keep it inside the
-`run(tx, ...)` callback instead of `afterSuccess`.
-
-`submit(...)` and `submitAction(...)` intentionally behave like normal async
-functions: successful submissions return the mutation result, and failed
-submissions throw. The mutation state is still updated so UI can observe
-pending/success/error.
-
-If mutation state is the caller's success/error channel, use `submitState(...)`
-or `submitActionState(...)`. These methods return the final `MutationState`
-instead of throwing, which is useful for form widgets that render
-`MutationError` directly.
-
-Action-only providers should return `void` from `build()` and expose mutation
-progress by watching the separate `Mutation<Result>`. They stay alive while a
-submission is pending, but do not automatically reset the mutation on provider
-dispose. Reset them explicitly with `mutation.reset(ref)` when the UI or a
-listener decides the transient state is no longer needed.
-
-## Direct Runner Usage
-
-If you are not using `riverpod_annotation`, use `MutationRunner` directly:
-
-```dart
-import 'package:riverpod/riverpod.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:riverpod_mutation_utils/riverpod_mutation_utils.dart';
 
-final saveCounterMutation = Mutation<int>();
+part 'dentist_create_provider.g.dart';
 
-final counterSaveControllerProvider =
-    NotifierProvider<CounterSaveController, int>(CounterSaveController.new);
-
-class CounterSaveController extends Notifier<int> {
-  final _runner = MutationRunner<int>();
-
+@generateMutation
+@riverpod
+class DentistCreate extends _$DentistCreateMutation with MutationActionMixin<DentistModel> {
   @override
-  int build() => 0;
+  void build() {} // Always returns void for action mixins
 
-  Future<int> save() {
-    return _runner.submitAction(
-      ref,
-      saveCounterMutation,
-      (tx) async {
-        final next = state + 1;
-        state = next;
-        return next;
+  Future<MutationState<DentistModel>> call(DentistCreateInput input) async {
+    // submitActionState runs the action and returns the MutationState (Success/Error) instead of throwing.
+    return await submitActionState(
+      (tsx) async {
+        final repo = await tsx.get(dentistRepoProvider.future);
+        return repo.create(input);
       },
-    );
-  }
-
-  Future<MutationState<int>> saveAsState() {
-    return _runner.submitActionState(
-      ref,
-      saveCounterMutation,
-      (tx) async {
-        final next = state + 1;
-        state = next;
-        return next;
+      afterSuccess: (result) {
+        // Perform post-success side-effects here (e.g., updating other providers, refreshing lists)
+        ref.read(dentistListProvider.notifier).insertItem(result);
       },
     );
   }
 }
 ```
 
-## Manual Usage With `riverpod_annotation`
+### 2. Observe in UI (Presentation)
 
-This is still Riverpod codegen, but the mutation wiring is handwritten:
-
-Non-family:
+Retrieve the mutation provider from the notifier to watch the state (for loading indicators and button states) or listen to state changes (for showing success/error messages):
 
 ```dart
-import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:riverpod_mutation_utils/riverpod_mutation_utils.dart';
+Widget build(BuildContext context, WidgetRef ref) {
+  final notifier = ref.watch(dentistCreateProvider.notifier);
+  
+  // 1. Listen for success/error events to trigger side-effects
+  ref.listen<MutationState<DentistModel>>(notifier.mutation, (previous, next) {
+    if (next is MutationSuccess<DentistModel>) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Registered Dr. ${next.value.lastName}!')),
+      );
+      Navigator.of(context).pop();
+    } else if (next is MutationError<DentistModel>) {
+      showDialog(
+        context: context,
+        builder: (_) => AlertDialog(title: Text('Error: ${next.error}')),
+      );
+    }
+  });
 
-part 'manual_annotation_non_family_example.g.dart';
+  // 2. Watch the mutation state to rebuild the UI
+  final state = ref.watch(notifier.mutation);
+  final isPending = state is MutationPending;
 
-final counterSaveMutation = Mutation<int>();
-
-@riverpod
-class ManualCounterSave extends _$ManualCounterSave
-    with StateFormMixin<int, int> {
-  @override
-  int build() => 0;
-
-  @override
-  Mutation<int> get mutation => counterSaveMutation;
-
-  Future<int> save() {
-    return submit((tx, form) async => form + 1);
-  }
+  return ElevatedButton(
+    onPressed: isPending ? null : () {
+      notifier.call(input);
+    },
+    child: isPending ? const CircularProgressIndicator() : const Text('Save'),
+  );
 }
 ```
 
-Family:
+---
+
+## Key Features
+
+### 🚫 Prevent Resubmissions on Success (`submitActionOnce`)
+To automatically skip execution if the mutation has already succeeded, suffix the submit method with `Once`:
 
 ```dart
-import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:riverpod_mutation_utils/riverpod_mutation_utils.dart';
-
-part 'manual_annotation_example.g.dart';
-
-final itemUpdateFormMutationBase = Mutation<String>();
-
-Mutation<String> itemUpdateFormMutation(String id) {
-  return itemUpdateFormMutationBase(id);
+Future<MutationState<DentistModel>> call(DentistCreateInput input) async {
+  // If already successful, returns cached state immediately without calling repo.create
+  return await submitActionStateOnce((tsx) async {
+    final repo = await tsx.get(dentistRepoProvider.future);
+    return repo.create(input);
+  });
 }
+```
 
+### 🔄 Action Submissions vs. State Submissions
+* **`submitAction` / `submit`** acts like a normal async call: returns the raw result on success and **throws** on failure.
+* **`submitActionState` / `submitState`** acts as a UI-friendly channel: catches failures internally and returns the final **`MutationState`** (either `MutationSuccess` or `MutationError`).
+
+---
+
+## Working with Family Providers
+
+When working with family providers, declare your family arguments in the notifier's `build` method. The generator automatically handles isolating the mutation state for each unique combination of arguments:
+
+### 1. Define the Family Provider
+```dart
+@generateMutation
 @riverpod
-class ManualItemUpdateForm extends _$ManualItemUpdateForm
-    with StateFormMixin<String, String> {
+class DentistUpdate extends _$DentistUpdateMutation with MutationActionMixin<DentistModel> {
   @override
-  String build(String id) => id;
+  void build(String id) {} // Family argument is declared here
 
-  @override
-  Mutation<String> get mutation => itemUpdateFormMutation(id);
-
-  Future<String> save() {
-    return submit((tx, form) async {
-      return 'saved:$form';
+  Future<MutationState<DentistModel>> call(DentistUpdateInput input) async {
+    return await submitActionState((tsx) async {
+      final repo = await tsx.get(dentistRepoProvider.future);
+      return repo.update(id, input); // Access family parameter `id` directly
     });
   }
 }
 ```
 
-Action-only:
+### 2. Observe in UI
+When watching in the UI, simply pass the family arguments to the provider. Watching `notifier.mutation` ensures you automatically receive the correctly scoped mutation instance for those family arguments:
 
 ```dart
-import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:riverpod_mutation_utils/riverpod_mutation_utils.dart';
+Widget build(BuildContext context, WidgetRef ref) {
+  // Watch the notifier with the family parameter
+  final notifier = ref.watch(dentistUpdateProvider('dentist-1').notifier);
+  
+  // Scopes automatically to the 'dentist-1' mutation state
+  final state = ref.watch(notifier.mutation);
+  final isPending = state is MutationPending;
 
-part 'manual_action_example.g.dart';
-
-final counterSaveMutation = Mutation<int>();
-
-@riverpod
-class ManualCounterAction extends _$ManualCounterAction
-    with MutationActionMixin<int> {
-  @override
-  void build() {}
-
-  @override
-  Mutation<int> get mutation => counterSaveMutation;
-
-  Future<int> save() {
-    return submitAction((tx) async => 1);
-  }
-
-  Future<MutationState<int>> saveAsState() {
-    return submitActionState((tx) async => 1);
-  }
+  return ElevatedButton(
+    onPressed: isPending ? null : () => notifier.call(input),
+    child: Text('Update Dentist'),
+  );
 }
 ```
 
-## Generated Usage
+---
 
-The companion generator package can generate a stable mutation base, a keyed
-mutation accessor, and a convenience abstract base for you:
+## Form Patterns
 
-Non-family:
+If your notifier holds sync or async form state and you want the mutation to reset automatically when the provider is disposed, mix in `StateFormMixin` or `AsyncStateFormMixin` instead of `MutationActionMixin`.
 
+### Example (Sync Form):
 ```dart
-import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:riverpod_mutation_utils/riverpod_mutation_utils.dart';
-
-part 'generated_non_family_example.g.dart';
-
 @generateMutation
 @riverpod
-class GeneratedCounterSave extends _$GeneratedCounterSaveMutation
-    with StateFormMixin<int, int> {
+class ItemUpdateForm extends _$ItemUpdateFormMutation with StateFormMixin<ItemFormState, String> {
   @override
-  int build() => 0;
+  ItemFormState build() => ItemFormState();
 
-  Future<int> save() {
-    return submit((tx, form) async => form + 1);
+  Future<String> save() {
+    // Passes the current state (form) to your run callback
+    return submit((tx, form) async {
+      return await api.update(form);
+    });
   }
 }
 ```
 
-Family:
+---
 
-```dart
-import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:riverpod_mutation_utils/riverpod_mutation_utils.dart';
+## Core API Reference
 
-part 'item_update_form.g.dart';
-
-@generateMutation
-@riverpod
-class ItemUpdateForm extends _$ItemUpdateFormMutation
-    with StateFormMixin<int, String> {
-  @override
-  int build(String id) => 0;
-}
-```
-
-That generated base hides the wiring mixin while keeping
-`StateFormMixin<...>` explicit, and the generated top-level
-`itemUpdateFormMutation(...)` accessor can be watched from the UI.
-
-When a family has multiple parameters, the generated accessor keys mutations by
-a Dart record of those arguments, so each parameter combination gets isolated
-mutation state.
-
-`submit(...)` keeps the submitting provider alive while the mutation is pending,
-which makes `afterSuccess` safe to use with `ref` for the common auto-dispose
-case. If the provider is explicitly invalidated or rebuilt before completion,
-the original ref becomes unmounted and `afterSuccess` is skipped.
-
-Form mixins keep the previous default of resetting their mutation on owner
-dispose. `MutationActionMixin` intentionally does not.
-
-## Design Notes
-
-- `run(tx, ...)` is the only place where `MutationTransaction` is guaranteed to
-  be valid.
-- `submit(...)` and `submitAction(...)` return `Result` and rethrow failures.
-- `submitState(...)` and `submitActionState(...)` return the final
-  `MutationState<Result>` and do not rethrow failures.
-- `afterSuccess` and `afterError` are post-transaction hooks.
-- `MutationActionMixin` is for `Notifier<void>` providers only.
-- `MutationResetPolicy.onOwnerDispose` is the default for forms and direct
-  `MutationRunner()` usage.
-- `MutationResetPolicy.manual` is the default for `MutationActionMixin`.
-- Family providers must return a keyed `mutation`. Prefer `@generateMutation`
-  so the accessor is derived automatically.
-- Multiple family parameters are keyed as a Dart record.
-- Mutation state is transient. Watch the mutation if the UI needs to reflect
-  pending, success, or error states.
-
-## API
-
-- `MutationRunner<Result>`
-- `MutationResetPolicy`
-- `StateFormMixin<FormState, Result>`
-- `AsyncStateFormMixin<FormState, Result>`
-- `MutationActionMixin<Result>`
+- `MutationRunner<Result>` — Low-level helper runner.
+- `MutationActionMixin<Result>` — For action-only providers (`Notifier<void>`).
+- `StateFormMixin<FormState, Result>` — For synchronous form state providers.
+- `AsyncStateFormMixin<FormState, Result>` — For asynchronous form state providers.
