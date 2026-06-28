@@ -48,6 +48,10 @@ class DentistCreate extends _$DentistCreateMutation with MutationActionMixin<Den
         final repo = await tsx.get(dentistRepoProvider.future);
         return repo.create(input);
       },
+      afterSuccess: (result) {
+        // Perform post-success side-effects here (e.g., updating other providers, refreshing lists)
+        ref.read(dentistListProvider.notifier).insertItem(result);
+      },
     );
   }
 }
