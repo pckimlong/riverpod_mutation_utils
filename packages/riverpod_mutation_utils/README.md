@@ -1,5 +1,7 @@
 # riverpod_mutation_utils
 
+[![codecov](https://codecov.io/gh/pckimlong/riverpod_mutation_utils/graph/badge.svg?token=)](https://codecov.io/gh/pckimlong/riverpod_mutation_utils)
+
 Runtime helpers, annotations, and mixins for Riverpod experimental mutations.
 
 This package provides a simple way to orchestrate mutation states (`idle`, `pending`, `success`, `error`) directly from Riverpod providers.
