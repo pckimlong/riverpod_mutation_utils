@@ -55,11 +55,28 @@ class DentistCreate extends _$DentistCreateMutation with MutationActionMixin<Den
 
 ### 2. Observe in UI (Presentation)
 
-Retrieve the mutation provider from the notifier to watch or listen to the state in your widgets. This ensures correct scoping, especially when working with family providers:
+Retrieve the mutation provider from the notifier to watch the state (for loading indicators and button states) or listen to state changes (for showing success/error messages):
 
 ```dart
 Widget build(BuildContext context, WidgetRef ref) {
   final notifier = ref.watch(dentistCreateProvider.notifier);
+  
+  // 1. Listen for success/error events to trigger side-effects
+  ref.listen<MutationState<DentistModel>>(notifier.mutation, (previous, next) {
+    if (next is MutationSuccess<DentistModel>) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Registered Dr. ${next.value.lastName}!')),
+      );
+      Navigator.of(context).pop();
+    } else if (next is MutationError<DentistModel>) {
+      showDialog(
+        context: context,
+        builder: (_) => AlertDialog(title: Text('Error: ${next.error}')),
+      );
+    }
+  });
+
+  // 2. Watch the mutation state to rebuild the UI
   final state = ref.watch(notifier.mutation);
   final isPending = state is MutationPending;
 
@@ -67,7 +84,7 @@ Widget build(BuildContext context, WidgetRef ref) {
     onPressed: isPending ? null : () {
       notifier.call(input);
     },
-    child: isPending ? CircularProgressIndicator() : Text('Save'),
+    child: isPending ? const CircularProgressIndicator() : const Text('Save'),
   );
 }
 ```
