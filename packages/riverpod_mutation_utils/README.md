@@ -55,17 +55,17 @@ class DentistCreate extends _$DentistCreateMutation with MutationActionMixin<Den
 
 ### 2. Observe in UI (Presentation)
 
-Use the generated top-level `[notifierName]Mutation` accessor to watch or listen to the state in your widgets:
+Retrieve the mutation provider from the notifier to watch or listen to the state in your widgets. This ensures correct scoping, especially when working with family providers:
 
 ```dart
 Widget build(BuildContext context, WidgetRef ref) {
-  // Watch the mutation state to show loading overlays or disable buttons
-  final mutation = ref.watch(dentistCreateMutation());
-  final isPending = mutation is MutationPending;
+  final notifier = ref.watch(dentistCreateProvider.notifier);
+  final state = ref.watch(notifier.mutation);
+  final isPending = state is MutationPending;
 
   return ElevatedButton(
     onPressed: isPending ? null : () {
-      ref.read(dentistCreateProvider.notifier).call(input);
+      notifier.call(input);
     },
     child: isPending ? CircularProgressIndicator() : Text('Save'),
   );
