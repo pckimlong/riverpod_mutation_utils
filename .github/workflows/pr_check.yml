@@ -1,6 +1,13 @@
 name: PR Checks
 
 on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - '**.md'
+      - 'LICENSE'
+      - '.gitignore'
   pull_request:
     branches:
       - main
@@ -63,9 +70,19 @@ jobs:
         working-directory: ${{ matrix.package }}
         run: dart analyze --fatal-infos --fatal-warnings
 
-      - name: Run package tests
+      - name: Run package tests with coverage
         working-directory: ${{ matrix.package }}
-        run: dart test
+        run: |
+          dart test --coverage=coverage
+          dart pub global activate coverage
+          dart pub global run coverage:format_coverage --lcov --in=coverage --out=coverage/lcov.info --report-on=lib
+
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ${{ matrix.package }}/coverage/lcov.info
+          flags: ${{ matrix.package == 'packages/riverpod_mutation_utils' && 'runtime' || 'generator' }}
 
       - name: Validate package
         working-directory: ${{ matrix.package }}
