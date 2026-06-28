@@ -37,8 +37,8 @@ final _asyncInvalidateSubmitterProvider =
       _AsyncInvalidateSubmitter.new,
     );
 
-final _disposeTestFamilyProvider =
-    NotifierProvider.family.autoDispose<_DisposeTestFamilySubmitter, int, String>(
+final _disposeTestFamilyProvider = NotifierProvider.family
+    .autoDispose<_DisposeTestFamilySubmitter, int, String>(
       _DisposeTestFamilySubmitter.new,
     );
 
@@ -61,7 +61,10 @@ class _DisposeTestFamilySubmitter extends Notifier<int> {
     );
   }
 
-  Future<MutationState<int>> submitState(Completer<int> completer, {bool ignoreIfSuccess = false}) {
+  Future<MutationState<int>> submitState(
+    Completer<int> completer, {
+    bool ignoreIfSuccess = false,
+  }) {
     return _runner.submitActionState(
       ref,
       mutation,
@@ -132,7 +135,10 @@ class _AutoDisposeSubmitter extends Notifier<int> {
     );
   }
 
-  Future<MutationState<int>> submitState(Completer<int> completer, {bool ignoreIfSuccess = false}) {
+  Future<MutationState<int>> submitState(
+    Completer<int> completer, {
+    bool ignoreIfSuccess = false,
+  }) {
     return _runner.submitActionState(
       ref,
       mutation,
@@ -1027,43 +1033,28 @@ void main() {
       var callCount = 0;
 
       // First call (idle state): executes run callback
-      final result1 = await runner.submitAction(
-        ref,
-        mutation,
-        (tx) async {
-          callCount++;
-          return 42;
-        },
-        ignoreIfSuccess: true,
-      );
+      final result1 = await runner.submitAction(ref, mutation, (tx) async {
+        callCount++;
+        return 42;
+      }, ignoreIfSuccess: true);
 
       expect(result1, 42);
       expect(callCount, 1);
 
       // Second call (success state): ignores run callback and returns cached result
-      final result2 = await runner.submitAction(
-        ref,
-        mutation,
-        (tx) async {
-          callCount++;
-          return 99;
-        },
-        ignoreIfSuccess: true,
-      );
+      final result2 = await runner.submitAction(ref, mutation, (tx) async {
+        callCount++;
+        return 99;
+      }, ignoreIfSuccess: true);
 
       expect(result2, 42); // Returns cached value
       expect(callCount, 1); // Callback not executed again
 
       // Third call (ignoreIfSuccess is false): executes run callback again
-      final result3 = await runner.submitAction(
-        ref,
-        mutation,
-        (tx) async {
-          callCount++;
-          return 99;
-        },
-        ignoreIfSuccess: false,
-      );
+      final result3 = await runner.submitAction(ref, mutation, (tx) async {
+        callCount++;
+        return 99;
+      }, ignoreIfSuccess: false);
 
       expect(result3, 99);
       expect(callCount, 2);
@@ -1080,141 +1071,136 @@ void main() {
       var callCount = 0;
 
       // First call (idle state): executes run callback
-      final state1 = await runner.submitActionState(
-        ref,
-        mutation,
-        (tx) async {
-          callCount++;
-          return 42;
-        },
-        ignoreIfSuccess: true,
-      );
+      final state1 = await runner.submitActionState(ref, mutation, (tx) async {
+        callCount++;
+        return 42;
+      }, ignoreIfSuccess: true);
 
       expect(state1, isA<MutationSuccess<int>>());
       expect((state1 as MutationSuccess<int>).value, 42);
       expect(callCount, 1);
 
       // Second call (success state): ignores run callback and returns cached state
-      final state2 = await runner.submitActionState(
-        ref,
-        mutation,
-        (tx) async {
-          callCount++;
-          return 99;
-        },
-        ignoreIfSuccess: true,
-      );
+      final state2 = await runner.submitActionState(ref, mutation, (tx) async {
+        callCount++;
+        return 99;
+      }, ignoreIfSuccess: true);
 
       expect(state2, isA<MutationSuccess<int>>());
-      expect((state2 as MutationSuccess<int>).value, 42); // Returns cached state
+      expect(
+        (state2 as MutationSuccess<int>).value,
+        42,
+      ); // Returns cached state
       expect(callCount, 1); // Callback not executed again
     });
 
-    test('submitActionOnce and submitActionStateOnce convenience functions prevent resubmission', () async {
-      final container = ProviderContainer.test();
-      addTearDown(container.dispose);
+    test(
+      'submitActionOnce and submitActionStateOnce convenience functions prevent resubmission',
+      () async {
+        final container = ProviderContainer.test();
+        addTearDown(container.dispose);
 
-      final ref = container.read(_refProvider);
-      final mutation = Mutation<int>();
-      final runner = MutationRunner<int>();
+        final ref = container.read(_refProvider);
+        final mutation = Mutation<int>();
+        final runner = MutationRunner<int>();
 
-      var callCount = 0;
+        var callCount = 0;
 
-      // submitActionOnce: first call (idle state) runs
-      final result1 = await runner.submitActionOnce(
-        ref,
-        mutation,
-        (tx) async {
+        // submitActionOnce: first call (idle state) runs
+        final result1 = await runner.submitActionOnce(ref, mutation, (
+          tx,
+        ) async {
           callCount++;
           return 42;
-        },
-      );
-      expect(result1, 42);
-      expect(callCount, 1);
+        });
+        expect(result1, 42);
+        expect(callCount, 1);
 
-      // submitActionOnce: second call (success state) is skipped
-      final result2 = await runner.submitActionOnce(
-        ref,
-        mutation,
-        (tx) async {
+        // submitActionOnce: second call (success state) is skipped
+        final result2 = await runner.submitActionOnce(ref, mutation, (
+          tx,
+        ) async {
           callCount++;
           return 99;
-        },
-      );
-      expect(result2, 42);
-      expect(callCount, 1);
+        });
+        expect(result2, 42);
+        expect(callCount, 1);
 
-      // Reset the mutation for submitActionStateOnce test
-      runner.reset(ref, mutation);
+        // Reset the mutation for submitActionStateOnce test
+        runner.reset(ref, mutation);
 
-      // submitActionStateOnce: first call runs
-      final state1 = await runner.submitActionStateOnce(
-        ref,
-        mutation,
-        (tx) async {
+        // submitActionStateOnce: first call runs
+        final state1 = await runner.submitActionStateOnce(ref, mutation, (
+          tx,
+        ) async {
           callCount++;
           return 100;
-        },
-      );
-      expect(state1, isA<MutationSuccess<int>>());
-      expect((state1 as MutationSuccess<int>).value, 100);
-      expect(callCount, 2);
+        });
+        expect(state1, isA<MutationSuccess<int>>());
+        expect((state1 as MutationSuccess<int>).value, 100);
+        expect(callCount, 2);
 
-      // submitActionStateOnce: second call is skipped
-      final state2 = await runner.submitActionStateOnce(
-        ref,
-        mutation,
-        (tx) async {
+        // submitActionStateOnce: second call is skipped
+        final state2 = await runner.submitActionStateOnce(ref, mutation, (
+          tx,
+        ) async {
           callCount++;
           return 200;
-        },
-      );
-      expect(state2, isA<MutationSuccess<int>>());
-      expect((state2 as MutationSuccess<int>).value, 100);
-      expect(callCount, 2);
-    });
+        });
+        expect(state2, isA<MutationSuccess<int>>());
+        expect((state2 as MutationSuccess<int>).value, 100);
+        expect(callCount, 2);
+      },
+    );
 
-    test('resets the mutation on dispose even when returning early due to ignoreIfSuccess', () async {
-      final container = ProviderContainer.test();
-      addTearDown(container.dispose);
+    test(
+      'resets the mutation on dispose even when returning early due to ignoreIfSuccess',
+      () async {
+        final container = ProviderContainer.test();
+        addTearDown(container.dispose);
 
-      // Keep provider 'a' alive so the provider's disposal doesn't reset the mutation early
-      final providerASub = container.listen(
-        _disposeTestFamilyProvider('a'),
-        (_, _) {},
-        fireImmediately: true,
-      );
-      addTearDown(providerASub.close);
+        // Keep provider 'a' alive so the provider's disposal doesn't reset the mutation early
+        final providerASub = container.listen(
+          _disposeTestFamilyProvider('a'),
+          (_, _) {},
+          fireImmediately: true,
+        );
+        addTearDown(providerASub.close);
 
-      final mutationSub = container.listen(
-        _DisposeTestFamilySubmitter.mutation,
-        (_, _) {},
-        fireImmediately: true,
-      );
-      addTearDown(mutationSub.close);
+        final mutationSub = container.listen(
+          _DisposeTestFamilySubmitter.mutation,
+          (_, _) {},
+          fireImmediately: true,
+        );
+        addTearDown(mutationSub.close);
 
-      // 1. Initial run via 'a': succeeds
-      final completer1 = Completer<int>()..complete(12);
-      final result = await container.read(_disposeTestFamilyProvider('a').notifier).submit(completer1);
-      expect(result, 12);
-      expect(mutationSub.read(), isA<MutationSuccess<int>>());
+        // 1. Initial run via 'a': succeeds
+        final completer1 = Completer<int>()..complete(12);
+        final result = await container
+            .read(_disposeTestFamilyProvider('a').notifier)
+            .submit(completer1);
+        expect(result, 12);
+        expect(mutationSub.read(), isA<MutationSuccess<int>>());
 
-      // 2. Second run via auto-disposing provider 'b' (with ignoreIfSuccess: true)
-      // Since it is already in Success state, it will return the cached success value early.
-      final state = await container.read(_disposeTestFamilyProvider('b').notifier).submitState(
-        Completer<int>()..complete(99),
-        ignoreIfSuccess: true,
-      );
-      expect(state, isA<MutationSuccess<int>>());
-      expect((state as MutationSuccess<int>).value, 12); // Cached value from 'a'
+        // 2. Second run via auto-disposing provider 'b' (with ignoreIfSuccess: true)
+        // Since it is already in Success state, it will return the cached success value early.
+        final state = await container
+            .read(_disposeTestFamilyProvider('b').notifier)
+            .submitState(Completer<int>()..complete(99), ignoreIfSuccess: true);
+        expect(state, isA<MutationSuccess<int>>());
+        expect(
+          (state as MutationSuccess<int>).value,
+          12,
+        ); // Cached value from 'a'
 
-      // We wait for the microtask to let the auto-disposing provider 'b' dispose itself
-      await container.pump();
-      await Future<void>.delayed(Duration.zero);
-      await container.pump();
+        // We wait for the microtask to let the auto-disposing provider 'b' dispose itself
+        await container.pump();
+        await Future<void>.delayed(Duration.zero);
+        await container.pump();
 
-      // 3. Verify the mutation resets to idle (proves provider 'b' registered its dispose listener to reset the mutation)
-      expect(mutationSub.read(), isA<MutationIdle<int>>());
-    });
+        // 3. Verify the mutation resets to idle (proves provider 'b' registered its dispose listener to reset the mutation)
+        expect(mutationSub.read(), isA<MutationIdle<int>>());
+      },
+    );
   });
 }

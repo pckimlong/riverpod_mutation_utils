@@ -192,7 +192,7 @@ class MutationRunner<Result> {
     return ref.container.read(mutation);
   }
 
-  /// Runs [run] like [submitAction], but if it has already succeeded, returns 
+  /// Runs [run] like [submitAction], but if it has already succeeded, returns
   /// the cached success value directly without re-executing.
   Future<Result> submitActionOnce(
     Ref ref,
@@ -211,7 +211,7 @@ class MutationRunner<Result> {
     );
   }
 
-  /// Runs [run] like [submitActionState], but if it has already succeeded, returns 
+  /// Runs [run] like [submitActionState], but if it has already succeeded, returns
   /// the cached success state directly without re-executing.
   Future<MutationState<Result>> submitActionStateOnce(
     Ref ref,
@@ -293,7 +293,7 @@ mixin StateFormMixin<FormState, Result> on $Notifier<FormState> {
     );
   }
 
-  /// Runs [run] like [submit], but if it has already succeeded, returns 
+  /// Runs [run] like [submit], but if it has already succeeded, returns
   /// the cached success value directly without re-executing.
   Future<Result> submitOnce(
     Future<Result> Function(MutationTransaction tx, FormState form) run, {
@@ -308,7 +308,7 @@ mixin StateFormMixin<FormState, Result> on $Notifier<FormState> {
     );
   }
 
-  /// Runs [run] like [submitState], but if it has already succeeded, returns 
+  /// Runs [run] like [submitState], but if it has already succeeded, returns
   /// the cached success state directly without re-executing.
   Future<MutationState<Result>> submitStateOnce(
     Future<Result> Function(MutationTransaction tx, FormState form) run, {
@@ -400,7 +400,7 @@ mixin AsyncStateFormMixin<FormState, Result> on $AsyncNotifier<FormState> {
     );
   }
 
-  /// Runs [run] like [submit], but if it has already succeeded, returns 
+  /// Runs [run] like [submit], but if it has already succeeded, returns
   /// the cached success value directly without re-executing.
   Future<Result> submitOnce(
     Future<Result> Function(MutationTransaction tx, FormState form) run, {
@@ -415,7 +415,7 @@ mixin AsyncStateFormMixin<FormState, Result> on $AsyncNotifier<FormState> {
     );
   }
 
-  /// Runs [run] like [submitState], but if it has already succeeded, returns 
+  /// Runs [run] like [submitState], but if it has already succeeded, returns
   /// the cached success state directly without re-executing.
   Future<MutationState<Result>> submitStateOnce(
     Future<Result> Function(MutationTransaction tx, FormState form) run, {
@@ -480,7 +480,7 @@ mixin MutationActionMixin<Result> on $Notifier<void> {
     );
   }
 
-  /// Runs [run] like [submitAction], but if it has already succeeded, returns 
+  /// Runs [run] like [submitAction], but if it has already succeeded, returns
   /// the cached success value directly without re-executing.
   Future<Result> submitActionOnce(
     Future<Result> Function(MutationTransaction tx) run, {
@@ -495,7 +495,7 @@ mixin MutationActionMixin<Result> on $Notifier<void> {
     );
   }
 
-  /// Runs [run] like [submitActionState], but if it has already succeeded, returns 
+  /// Runs [run] like [submitActionState], but if it has already succeeded, returns
   /// the cached success state directly without re-executing.
   Future<MutationState<Result>> submitActionStateOnce(
     Future<Result> Function(MutationTransaction tx) run, {
