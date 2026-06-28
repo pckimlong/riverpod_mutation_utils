@@ -8,7 +8,17 @@ This package provides a simple way to orchestrate mutation states (`idle`, `pend
 
 ## Install
 
-Add the runtime package and companion generator:
+Run the following commands to install the runtime package and companion generator:
+
+```sh
+# Add the runtime package to dependencies
+dart pub add riverpod_mutation_utils
+
+# Add build runner and the companion generator to dev_dependencies
+dart pub add dev:build_runner dev:riverpod_mutation_utils_generator
+```
+
+Or manually add them to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
