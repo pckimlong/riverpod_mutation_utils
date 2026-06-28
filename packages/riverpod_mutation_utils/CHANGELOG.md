@@ -1,3 +1,7 @@
+## 0.5.8
+
+- Update README documentation with simplified quick starts, family provider recommendations, and updated installation instructions.
+
 ## 0.5.7
 
 - Add `ignoreIfSuccess` parameter and convenience `Once`-suffixed methods (`submitActionOnce`, `submitActionStateOnce`, `submitOnce`, `submitStateOnce`) to prevent duplicate resubmissions.
