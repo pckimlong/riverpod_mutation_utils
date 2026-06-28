@@ -37,6 +37,40 @@ final _asyncInvalidateSubmitterProvider =
       _AsyncInvalidateSubmitter.new,
     );
 
+final _disposeTestFamilyProvider =
+    NotifierProvider.family.autoDispose<_DisposeTestFamilySubmitter, int, String>(
+      _DisposeTestFamilySubmitter.new,
+    );
+
+class _DisposeTestFamilySubmitter extends Notifier<int> {
+  _DisposeTestFamilySubmitter(this.id);
+  final String id;
+
+  static final mutation = Mutation<int>();
+  final _runner = MutationRunner<int>();
+
+  @override
+  int build() => 0;
+
+  Future<int> submit(Completer<int> completer, {bool ignoreIfSuccess = false}) {
+    return _runner.submitAction(
+      ref,
+      mutation,
+      (tx) => completer.future,
+      ignoreIfSuccess: ignoreIfSuccess,
+    );
+  }
+
+  Future<MutationState<int>> submitState(Completer<int> completer, {bool ignoreIfSuccess = false}) {
+    return _runner.submitActionState(
+      ref,
+      mutation,
+      (tx) => completer.future,
+      ignoreIfSuccess: ignoreIfSuccess,
+    );
+  }
+}
+
 class _CounterNotifier extends Notifier<int> {
   @override
   int build() => 0;
@@ -86,6 +120,24 @@ class _AutoDisposeSubmitter extends Notifier<int> {
       afterError: (error, stackTrace) {
         ref.read(_eventLogProvider.notifier).add('error:$error');
       },
+    );
+  }
+
+  Future<int> submit(Completer<int> completer, {bool ignoreIfSuccess = false}) {
+    return _runner.submitAction(
+      ref,
+      mutation,
+      (tx) => completer.future,
+      ignoreIfSuccess: ignoreIfSuccess,
+    );
+  }
+
+  Future<MutationState<int>> submitState(Completer<int> completer, {bool ignoreIfSuccess = false}) {
+    return _runner.submitActionState(
+      ref,
+      mutation,
+      (tx) => completer.future,
+      ignoreIfSuccess: ignoreIfSuccess,
     );
   }
 }
@@ -1120,6 +1172,49 @@ void main() {
       expect(state2, isA<MutationSuccess<int>>());
       expect((state2 as MutationSuccess<int>).value, 100);
       expect(callCount, 2);
+    });
+
+    test('resets the mutation on dispose even when returning early due to ignoreIfSuccess', () async {
+      final container = ProviderContainer.test();
+      addTearDown(container.dispose);
+
+      // Keep provider 'a' alive so the provider's disposal doesn't reset the mutation early
+      final providerASub = container.listen(
+        _disposeTestFamilyProvider('a'),
+        (_, _) {},
+        fireImmediately: true,
+      );
+      addTearDown(providerASub.close);
+
+      final mutationSub = container.listen(
+        _DisposeTestFamilySubmitter.mutation,
+        (_, _) {},
+        fireImmediately: true,
+      );
+      addTearDown(mutationSub.close);
+
+      // 1. Initial run via 'a': succeeds
+      final completer1 = Completer<int>()..complete(12);
+      final result = await container.read(_disposeTestFamilyProvider('a').notifier).submit(completer1);
+      expect(result, 12);
+      expect(mutationSub.read(), isA<MutationSuccess<int>>());
+
+      // 2. Second run via auto-disposing provider 'b' (with ignoreIfSuccess: true)
+      // Since it is already in Success state, it will return the cached success value early.
+      final state = await container.read(_disposeTestFamilyProvider('b').notifier).submitState(
+        Completer<int>()..complete(99),
+        ignoreIfSuccess: true,
+      );
+      expect(state, isA<MutationSuccess<int>>());
+      expect((state as MutationSuccess<int>).value, 12); // Cached value from 'a'
+
+      // We wait for the microtask to let the auto-disposing provider 'b' dispose itself
+      await container.pump();
+      await Future<void>.delayed(Duration.zero);
+      await container.pump();
+
+      // 3. Verify the mutation resets to idle (proves provider 'b' registered its dispose listener to reset the mutation)
+      expect(mutationSub.read(), isA<MutationIdle<int>>());
     });
   });
 }
