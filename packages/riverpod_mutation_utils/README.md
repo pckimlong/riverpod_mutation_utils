@@ -116,6 +116,48 @@ Future<MutationState<DentistModel>> call(DentistCreateInput input) async {
 
 ---
 
+## Working with Family Providers
+
+When working with family providers, declare your family arguments in the notifier's `build` method. The generator automatically handles isolating the mutation state for each unique combination of arguments:
+
+### 1. Define the Family Provider
+```dart
+@generateMutation
+@riverpod
+class DentistUpdate extends _$DentistUpdateMutation with MutationActionMixin<DentistModel> {
+  @override
+  void build(String id) {} // Family argument is declared here
+
+  Future<MutationState<DentistModel>> call(DentistUpdateInput input) async {
+    return await submitActionState((tsx) async {
+      final repo = await tsx.get(dentistRepoProvider.future);
+      return repo.update(id, input); // Access family parameter `id` directly
+    });
+  }
+}
+```
+
+### 2. Observe in UI
+When watching in the UI, simply pass the family arguments to the provider. Watching `notifier.mutation` ensures you automatically receive the correctly scoped mutation instance for those family arguments:
+
+```dart
+Widget build(BuildContext context, WidgetRef ref) {
+  // Watch the notifier with the family parameter
+  final notifier = ref.watch(dentistUpdateProvider('dentist-1').notifier);
+  
+  // Scopes automatically to the 'dentist-1' mutation state
+  final state = ref.watch(notifier.mutation);
+  final isPending = state is MutationPending;
+
+  return ElevatedButton(
+    onPressed: isPending ? null : () => notifier.call(input),
+    child: Text('Update Dentist'),
+  );
+}
+```
+
+---
+
 ## Form Patterns
 
 If your notifier holds sync or async form state and you want the mutation to reset automatically when the provider is disposed, mix in `StateFormMixin` or `AsyncStateFormMixin` instead of `MutationActionMixin`.
