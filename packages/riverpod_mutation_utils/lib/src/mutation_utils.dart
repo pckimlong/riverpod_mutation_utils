@@ -122,6 +122,7 @@ class MutationRunner<Result> {
     Ref ref,
     Mutation<Result> mutation,
     Future<Result> Function(MutationTransaction tx) run, {
+    bool ignoreIfSuccess = false,
     // Runs after the mutation transaction has completed and closed.
     // This callback is skipped if the submitting provider was unmounted
     // before completion. The runner keeps the provider alive while pending to
@@ -131,6 +132,12 @@ class MutationRunner<Result> {
     FutureOr<void> Function(Object error, StackTrace stackTrace)? afterError,
   }) async {
     ensureMutationResetOnDispose(ref, mutation);
+    if (ignoreIfSuccess) {
+      final currentState = ref.container.read(mutation);
+      if (currentState is MutationSuccess<Result>) {
+        return currentState.value;
+      }
+    }
     if (_inFlight != null) return _inFlight!;
 
     final keepAliveLink = ref.keepAlive();
@@ -168,19 +175,62 @@ class MutationRunner<Result> {
     Ref ref,
     Mutation<Result> mutation,
     Future<Result> Function(MutationTransaction tx) run, {
+    bool ignoreIfSuccess = false,
     FutureOr<void> Function(Result result)? afterSuccess,
     FutureOr<void> Function(Object error, StackTrace stackTrace)? afterError,
   }) async {
+    if (ignoreIfSuccess && ref.container.read(mutation) is MutationSuccess<Result>) {
+      return ref.container.read(mutation);
+    }
     try {
       await submitAction(
         ref,
         mutation,
         run,
+        ignoreIfSuccess: ignoreIfSuccess,
         afterSuccess: afterSuccess,
         afterError: afterError,
       );
     } catch (_) {}
     return ref.container.read(mutation);
+  }
+
+  /// Runs [run] like [submitAction], but if it has already succeeded, returns 
+  /// the cached success value directly without re-executing.
+  Future<Result> submitActionOnce(
+    Ref ref,
+    Mutation<Result> mutation,
+    Future<Result> Function(MutationTransaction tx) run, {
+    FutureOr<void> Function(Result result)? afterSuccess,
+    FutureOr<void> Function(Object error, StackTrace stackTrace)? afterError,
+  }) {
+    return submitAction(
+      ref,
+      mutation,
+      run,
+      ignoreIfSuccess: true,
+      afterSuccess: afterSuccess,
+      afterError: afterError,
+    );
+  }
+
+  /// Runs [run] like [submitActionState], but if it has already succeeded, returns 
+  /// the cached success state directly without re-executing.
+  Future<MutationState<Result>> submitActionStateOnce(
+    Ref ref,
+    Mutation<Result> mutation,
+    Future<Result> Function(MutationTransaction tx) run, {
+    FutureOr<void> Function(Result result)? afterSuccess,
+    FutureOr<void> Function(Object error, StackTrace stackTrace)? afterError,
+  }) {
+    return submitActionState(
+      ref,
+      mutation,
+      run,
+      ignoreIfSuccess: true,
+      afterSuccess: afterSuccess,
+      afterError: afterError,
+    );
   }
 }
 
@@ -214,6 +264,7 @@ mixin StateFormMixin<FormState, Result> on $Notifier<FormState> {
 
   Future<Result> submit(
     Future<Result> Function(MutationTransaction tx, FormState form) run, {
+    bool ignoreIfSuccess = false,
     FutureOr<void> Function(Result result)? afterSuccess,
     FutureOr<void> Function(Object error, StackTrace stackTrace)? afterError,
   }) {
@@ -221,6 +272,7 @@ mixin StateFormMixin<FormState, Result> on $Notifier<FormState> {
       ref,
       mutation,
       (tx) => run(tx, _formState),
+      ignoreIfSuccess: ignoreIfSuccess,
       afterSuccess: afterSuccess,
       afterError: afterError,
     );
@@ -230,6 +282,7 @@ mixin StateFormMixin<FormState, Result> on $Notifier<FormState> {
   /// of throwing on failure.
   Future<MutationState<Result>> submitState(
     Future<Result> Function(MutationTransaction tx, FormState form) run, {
+    bool ignoreIfSuccess = false,
     FutureOr<void> Function(Result result)? afterSuccess,
     FutureOr<void> Function(Object error, StackTrace stackTrace)? afterError,
   }) {
@@ -237,6 +290,37 @@ mixin StateFormMixin<FormState, Result> on $Notifier<FormState> {
       ref,
       mutation,
       (tx) => run(tx, _formState),
+      ignoreIfSuccess: ignoreIfSuccess,
+      afterSuccess: afterSuccess,
+      afterError: afterError,
+    );
+  }
+
+  /// Runs [run] like [submit], but if it has already succeeded, returns 
+  /// the cached success value directly without re-executing.
+  Future<Result> submitOnce(
+    Future<Result> Function(MutationTransaction tx, FormState form) run, {
+    FutureOr<void> Function(Result result)? afterSuccess,
+    FutureOr<void> Function(Object error, StackTrace stackTrace)? afterError,
+  }) {
+    return submit(
+      run,
+      ignoreIfSuccess: true,
+      afterSuccess: afterSuccess,
+      afterError: afterError,
+    );
+  }
+
+  /// Runs [run] like [submitState], but if it has already succeeded, returns 
+  /// the cached success state directly without re-executing.
+  Future<MutationState<Result>> submitStateOnce(
+    Future<Result> Function(MutationTransaction tx, FormState form) run, {
+    FutureOr<void> Function(Result result)? afterSuccess,
+    FutureOr<void> Function(Object error, StackTrace stackTrace)? afterError,
+  }) {
+    return submitState(
+      run,
+      ignoreIfSuccess: true,
       afterSuccess: afterSuccess,
       afterError: afterError,
     );
@@ -287,6 +371,7 @@ mixin AsyncStateFormMixin<FormState, Result> on $AsyncNotifier<FormState> {
 
   Future<Result> submit(
     Future<Result> Function(MutationTransaction tx, FormState form) run, {
+    bool ignoreIfSuccess = false,
     FutureOr<void> Function(Result result)? afterSuccess,
     FutureOr<void> Function(Object error, StackTrace stackTrace)? afterError,
   }) {
@@ -294,6 +379,7 @@ mixin AsyncStateFormMixin<FormState, Result> on $AsyncNotifier<FormState> {
       ref,
       mutation,
       (tx) => run(tx, _formState),
+      ignoreIfSuccess: ignoreIfSuccess,
       afterSuccess: afterSuccess,
       afterError: afterError,
     );
@@ -303,6 +389,7 @@ mixin AsyncStateFormMixin<FormState, Result> on $AsyncNotifier<FormState> {
   /// of throwing on failure.
   Future<MutationState<Result>> submitState(
     Future<Result> Function(MutationTransaction tx, FormState form) run, {
+    bool ignoreIfSuccess = false,
     FutureOr<void> Function(Result result)? afterSuccess,
     FutureOr<void> Function(Object error, StackTrace stackTrace)? afterError,
   }) {
@@ -310,6 +397,37 @@ mixin AsyncStateFormMixin<FormState, Result> on $AsyncNotifier<FormState> {
       ref,
       mutation,
       (tx) => run(tx, _formState),
+      ignoreIfSuccess: ignoreIfSuccess,
+      afterSuccess: afterSuccess,
+      afterError: afterError,
+    );
+  }
+
+  /// Runs [run] like [submit], but if it has already succeeded, returns 
+  /// the cached success value directly without re-executing.
+  Future<Result> submitOnce(
+    Future<Result> Function(MutationTransaction tx, FormState form) run, {
+    FutureOr<void> Function(Result result)? afterSuccess,
+    FutureOr<void> Function(Object error, StackTrace stackTrace)? afterError,
+  }) {
+    return submit(
+      run,
+      ignoreIfSuccess: true,
+      afterSuccess: afterSuccess,
+      afterError: afterError,
+    );
+  }
+
+  /// Runs [run] like [submitState], but if it has already succeeded, returns 
+  /// the cached success state directly without re-executing.
+  Future<MutationState<Result>> submitStateOnce(
+    Future<Result> Function(MutationTransaction tx, FormState form) run, {
+    FutureOr<void> Function(Result result)? afterSuccess,
+    FutureOr<void> Function(Object error, StackTrace stackTrace)? afterError,
+  }) {
+    return submitState(
+      run,
+      ignoreIfSuccess: true,
       afterSuccess: afterSuccess,
       afterError: afterError,
     );
@@ -333,6 +451,7 @@ mixin MutationActionMixin<Result> on $Notifier<void> {
 
   Future<Result> submitAction(
     Future<Result> Function(MutationTransaction tx) run, {
+    bool ignoreIfSuccess = false,
     FutureOr<void> Function(Result result)? afterSuccess,
     FutureOr<void> Function(Object error, StackTrace stackTrace)? afterError,
   }) {
@@ -340,6 +459,7 @@ mixin MutationActionMixin<Result> on $Notifier<void> {
       ref,
       mutation,
       run,
+      ignoreIfSuccess: ignoreIfSuccess,
       afterSuccess: afterSuccess,
       afterError: afterError,
     );
@@ -349,6 +469,7 @@ mixin MutationActionMixin<Result> on $Notifier<void> {
   /// instead of throwing on failure.
   Future<MutationState<Result>> submitActionState(
     Future<Result> Function(MutationTransaction tx) run, {
+    bool ignoreIfSuccess = false,
     FutureOr<void> Function(Result result)? afterSuccess,
     FutureOr<void> Function(Object error, StackTrace stackTrace)? afterError,
   }) {
@@ -356,6 +477,37 @@ mixin MutationActionMixin<Result> on $Notifier<void> {
       ref,
       mutation,
       run,
+      ignoreIfSuccess: ignoreIfSuccess,
+      afterSuccess: afterSuccess,
+      afterError: afterError,
+    );
+  }
+
+  /// Runs [run] like [submitAction], but if it has already succeeded, returns 
+  /// the cached success value directly without re-executing.
+  Future<Result> submitActionOnce(
+    Future<Result> Function(MutationTransaction tx) run, {
+    FutureOr<void> Function(Result result)? afterSuccess,
+    FutureOr<void> Function(Object error, StackTrace stackTrace)? afterError,
+  }) {
+    return submitAction(
+      run,
+      ignoreIfSuccess: true,
+      afterSuccess: afterSuccess,
+      afterError: afterError,
+    );
+  }
+
+  /// Runs [run] like [submitActionState], but if it has already succeeded, returns 
+  /// the cached success state directly without re-executing.
+  Future<MutationState<Result>> submitActionStateOnce(
+    Future<Result> Function(MutationTransaction tx) run, {
+    FutureOr<void> Function(Result result)? afterSuccess,
+    FutureOr<void> Function(Object error, StackTrace stackTrace)? afterError,
+  }) {
+    return submitActionState(
+      run,
+      ignoreIfSuccess: true,
       afterSuccess: afterSuccess,
       afterError: afterError,
     );

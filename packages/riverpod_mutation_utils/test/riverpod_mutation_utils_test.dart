@@ -963,5 +963,163 @@ void main() {
       expect(capturedError, isA<StateError>());
       expect((capturedError as StateError).message, 'boom');
     });
+
+    test('submitAction respects ignoreIfSuccess parameter', () async {
+      final container = ProviderContainer.test();
+      addTearDown(container.dispose);
+
+      final ref = container.read(_refProvider);
+      final mutation = Mutation<int>();
+      final runner = MutationRunner<int>();
+
+      var callCount = 0;
+
+      // First call (idle state): executes run callback
+      final result1 = await runner.submitAction(
+        ref,
+        mutation,
+        (tx) async {
+          callCount++;
+          return 42;
+        },
+        ignoreIfSuccess: true,
+      );
+
+      expect(result1, 42);
+      expect(callCount, 1);
+
+      // Second call (success state): ignores run callback and returns cached result
+      final result2 = await runner.submitAction(
+        ref,
+        mutation,
+        (tx) async {
+          callCount++;
+          return 99;
+        },
+        ignoreIfSuccess: true,
+      );
+
+      expect(result2, 42); // Returns cached value
+      expect(callCount, 1); // Callback not executed again
+
+      // Third call (ignoreIfSuccess is false): executes run callback again
+      final result3 = await runner.submitAction(
+        ref,
+        mutation,
+        (tx) async {
+          callCount++;
+          return 99;
+        },
+        ignoreIfSuccess: false,
+      );
+
+      expect(result3, 99);
+      expect(callCount, 2);
+    });
+
+    test('submitActionState respects ignoreIfSuccess parameter', () async {
+      final container = ProviderContainer.test();
+      addTearDown(container.dispose);
+
+      final ref = container.read(_refProvider);
+      final mutation = Mutation<int>();
+      final runner = MutationRunner<int>();
+
+      var callCount = 0;
+
+      // First call (idle state): executes run callback
+      final state1 = await runner.submitActionState(
+        ref,
+        mutation,
+        (tx) async {
+          callCount++;
+          return 42;
+        },
+        ignoreIfSuccess: true,
+      );
+
+      expect(state1, isA<MutationSuccess<int>>());
+      expect((state1 as MutationSuccess<int>).value, 42);
+      expect(callCount, 1);
+
+      // Second call (success state): ignores run callback and returns cached state
+      final state2 = await runner.submitActionState(
+        ref,
+        mutation,
+        (tx) async {
+          callCount++;
+          return 99;
+        },
+        ignoreIfSuccess: true,
+      );
+
+      expect(state2, isA<MutationSuccess<int>>());
+      expect((state2 as MutationSuccess<int>).value, 42); // Returns cached state
+      expect(callCount, 1); // Callback not executed again
+    });
+
+    test('submitActionOnce and submitActionStateOnce convenience functions prevent resubmission', () async {
+      final container = ProviderContainer.test();
+      addTearDown(container.dispose);
+
+      final ref = container.read(_refProvider);
+      final mutation = Mutation<int>();
+      final runner = MutationRunner<int>();
+
+      var callCount = 0;
+
+      // submitActionOnce: first call (idle state) runs
+      final result1 = await runner.submitActionOnce(
+        ref,
+        mutation,
+        (tx) async {
+          callCount++;
+          return 42;
+        },
+      );
+      expect(result1, 42);
+      expect(callCount, 1);
+
+      // submitActionOnce: second call (success state) is skipped
+      final result2 = await runner.submitActionOnce(
+        ref,
+        mutation,
+        (tx) async {
+          callCount++;
+          return 99;
+        },
+      );
+      expect(result2, 42);
+      expect(callCount, 1);
+
+      // Reset the mutation for submitActionStateOnce test
+      runner.reset(ref, mutation);
+
+      // submitActionStateOnce: first call runs
+      final state1 = await runner.submitActionStateOnce(
+        ref,
+        mutation,
+        (tx) async {
+          callCount++;
+          return 100;
+        },
+      );
+      expect(state1, isA<MutationSuccess<int>>());
+      expect((state1 as MutationSuccess<int>).value, 100);
+      expect(callCount, 2);
+
+      // submitActionStateOnce: second call is skipped
+      final state2 = await runner.submitActionStateOnce(
+        ref,
+        mutation,
+        (tx) async {
+          callCount++;
+          return 200;
+        },
+      );
+      expect(state2, isA<MutationSuccess<int>>());
+      expect((state2 as MutationSuccess<int>).value, 100);
+      expect(callCount, 2);
+    });
   });
 }

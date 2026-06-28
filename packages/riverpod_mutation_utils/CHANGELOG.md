@@ -1,3 +1,7 @@
+## 0.5.7
+
+- Add `ignoreIfSuccess` parameter and convenience `Once`-suffixed methods (`submitActionOnce`, `submitActionStateOnce`, `submitOnce`, `submitStateOnce`) to prevent duplicate resubmissions.
+
 ## 0.5.6
 
 - Add state-returning submission helpers: `MutationRunner.submitActionState`,
