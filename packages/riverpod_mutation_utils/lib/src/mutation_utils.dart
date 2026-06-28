@@ -179,9 +179,6 @@ class MutationRunner<Result> {
     FutureOr<void> Function(Result result)? afterSuccess,
     FutureOr<void> Function(Object error, StackTrace stackTrace)? afterError,
   }) async {
-    if (ignoreIfSuccess && ref.container.read(mutation) is MutationSuccess<Result>) {
-      return ref.container.read(mutation);
-    }
     try {
       await submitAction(
         ref,
