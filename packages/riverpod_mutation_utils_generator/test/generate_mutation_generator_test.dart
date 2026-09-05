@@ -1,3 +1,6 @@
+import 'package:build/build.dart';
+import 'package:build_test/build_test.dart';
+import 'package:riverpod_mutation_utils_generator/riverpod_mutation_utils_generator.dart';
 import 'package:riverpod_mutation_utils_generator/src/generate_mutation_generator.dart';
 import 'package:test/test.dart';
 
@@ -61,5 +64,106 @@ void main() {
         ),
       );
     });
+
+    test(
+      'preserves optional parameters, defaults, and nested nullable types',
+      () {
+        final output = renderMutationSpec(
+          className: 'CatalogSearch',
+          resultTypeDisplay: 'List<String?>?',
+          parameters: const [
+            MutationParameterSpec(type: 'String', name: 'query'),
+            MutationParameterSpec(
+              type: 'int?',
+              name: 'limit',
+              isOptionalPositional: true,
+              defaultValueCode: '20',
+            ),
+          ],
+        );
+
+        expect(
+          output,
+          contains(
+            'Mutation<List<String?>?> catalogSearchMutation(String query, [int? limit = 20]) {',
+          ),
+        );
+        expect(
+          output,
+          contains('_\$catalogSearchMutationBase((query, limit))'),
+        );
+      },
+    );
+
+    test('preserves optional named defaults', () {
+      final output = renderMutationSpec(
+        className: 'CatalogFilter',
+        resultTypeDisplay: 'Map<String, List<int?>>',
+        parameters: const [
+          MutationParameterSpec(type: 'String?', name: 'cursor', isNamed: true),
+          MutationParameterSpec(
+            type: 'bool',
+            name: 'includeHidden',
+            isNamed: true,
+            defaultValueCode: 'false',
+          ),
+        ],
+      );
+
+      expect(
+        output,
+        contains(
+          'catalogFilterMutation({String? cursor, bool includeHidden = false})',
+        ),
+      );
+      expect(
+        output,
+        contains('_\$catalogFilterMutationBase((cursor, includeHidden))'),
+      );
+    });
   });
+
+  test(
+    'extracts parameter syntax through the public analyzer element API',
+    () async {
+      await testBuilder(
+        mutationBuilder(BuilderOptions.empty),
+        const {
+          'riverpod_mutation_utils|lib/riverpod_mutation_utils.dart': r'''
+class GenerateMutation {
+  const GenerateMutation();
+}
+
+const generateMutation = GenerateMutation();
+''',
+          'riverpod_mutation_utils_generator|lib/input.dart': r'''
+import 'package:riverpod_mutation_utils/riverpod_mutation_utils.dart'
+    show generateMutation;
+
+mixin StateFormMixin<FormState, Result> {}
+
+@generateMutation
+class SearchForm with StateFormMixin<String, List<String?>?> {
+  String build(
+    String query, [
+    int? limit = 20,
+  ]) => query;
+}
+''',
+        },
+        outputs: {
+          'riverpod_mutation_utils_generator|lib/input.mutation_utils.g.part':
+              decodedMatches(
+                allOf(
+                  contains(
+                    'Mutation<List<String?>?> searchFormMutation('
+                    'String query, [int? limit = 20])',
+                  ),
+                  contains('_\$searchFormMutationBase((query, limit))'),
+                ),
+              ),
+        },
+      );
+    },
+  );
 }

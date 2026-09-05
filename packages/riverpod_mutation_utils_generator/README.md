@@ -12,13 +12,13 @@ This package generates:
 
 ```yaml
 dependencies:
-  riverpod_annotation: ^4.0.3
+  riverpod_annotation: ^4.0.2
   riverpod_mutation_utils: ^0.5.5
 
 dev_dependencies:
-  build_runner: ^2.7.1
+  build_runner: ^2.15.1
   riverpod_generator: ^4.0.4
-  riverpod_mutation_utils_generator: ^0.5.5
+  riverpod_mutation_utils_generator: ^0.5.6
 ```
 
 ## Usage
@@ -60,3 +60,28 @@ The generator emits:
 
 Family providers are keyed automatically. If the family has multiple
 parameters, the generated accessor key becomes a record of those arguments.
+Optional positional and named parameters retain their declared types and
+default values in the mutation accessor.
+
+## Compatibility
+
+Version 0.5.6 supports:
+
+| Dependency | Supported versions |
+| --- | --- |
+| Dart | `>=3.11.1 <4.0.0` |
+| analyzer | `>=13.3.0 <15.0.0` |
+| build | `>=4.0.8 <5.0.0` |
+| source_gen | `>=4.2.4 <5.0.0` |
+| riverpod_annotation | `>=4.0.2 <5.0.0` |
+| riverpod_mutation_utils | `>=0.5.5 <0.6.0` |
+
+The lower bounds remain usable; consumers do not need to pin every codegen
+dependency to its latest release. Analyzer 13.3 uses the source_gen 4.2 line,
+while analyzer 14 can use source_gen 4.2.4 or 4.3.x. A compatible build_runner
+2.x release is selected through `build`; build_runner 2.15.1 or newer is
+recommended for this analyzer range.
+
+This builder and Riverpod's generator both emit shared parts that are combined
+by `source_gen`. No `runs_before` ordering is required. Other shared-part
+generators, including schema generators, can participate in the same build.

@@ -54,10 +54,20 @@ jobs:
         working-directory: ${{ matrix.package }}
         run: dart pub get --dry-run
 
-      - name: Regenerate example code
+      - name: Remove generated example code
+        if: matrix.package == 'packages/riverpod_mutation_utils'
+        working-directory: ${{ matrix.package }}
+        run: find example -name '*.g.dart' -delete
+
+      - name: Generate examples from a clean checkout
         if: matrix.package == 'packages/riverpod_mutation_utils'
         working-directory: ${{ matrix.package }}
         run: dart run build_runner build --delete-conflicting-outputs
+
+      - name: Verify incremental generation
+        if: matrix.package == 'packages/riverpod_mutation_utils'
+        working-directory: ${{ matrix.package }}
+        run: dart run build_runner build
 
       - name: Analyze package
         working-directory: ${{ matrix.package }}
@@ -70,3 +80,64 @@ jobs:
       - name: Validate package
         working-directory: ${{ matrix.package }}
         run: dart pub publish --dry-run
+
+  generator-compatibility:
+    name: Analyzer ${{ matrix.analyzer }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        analyzer:
+          - '13.3.0'
+          - '14.0.0'
+          - latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Dart
+        uses: dart-lang/setup-dart@v1
+
+      - name: Select analyzer version
+        if: matrix.analyzer != 'latest'
+        working-directory: packages/riverpod_mutation_utils_generator
+        run: dart pub add 'analyzer:${{ matrix.analyzer }}'
+
+      - name: Select lower compatible generator tooling
+        if: matrix.analyzer == '13.3.0'
+        working-directory: packages/riverpod_mutation_utils_generator
+        run: dart pub add 'build:4.0.8' 'source_gen:4.2.4'
+
+      - name: Select lower compatible build_runner
+        if: matrix.analyzer == '13.3.0'
+        working-directory: packages/riverpod_mutation_utils
+        run: dart pub add --dev 'build_runner:2.15.1'
+
+      - name: Resolve latest compatible stack
+        if: matrix.analyzer == 'latest'
+        run: dart pub upgrade
+
+      - name: Analyze generator
+        working-directory: packages/riverpod_mutation_utils_generator
+        run: dart analyze --fatal-infos --fatal-warnings
+
+      - name: Test generator
+        working-directory: packages/riverpod_mutation_utils_generator
+        run: dart test
+
+      - name: Remove generated integration outputs
+        working-directory: packages/riverpod_mutation_utils
+        run: find example -name '*.g.dart' -delete
+
+      - name: Test clean Riverpod generation
+        working-directory: packages/riverpod_mutation_utils
+        run: dart run build_runner build
+
+      - name: Test incremental Riverpod generation
+        working-directory: packages/riverpod_mutation_utils
+        run: dart run build_runner build
+
+      - name: Test generated runtime integration
+        working-directory: packages/riverpod_mutation_utils
+        run: dart test
