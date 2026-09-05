@@ -1,3 +1,10 @@
+## 0.5.9
+
+- Use Riverpod's public `AnyNotifier` mixin constraint so current Riverpod
+  releases analyze cleanly without changing the mutation runtime API.
+- Add generated-usage examples and tests for optional positional and named
+  parameters, defaults, nullable types, and generic types.
+
 ## 0.5.8
 
 - Update README documentation with simplified quick starts, family provider recommendations, and updated installation instructions.

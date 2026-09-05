@@ -24,11 +24,11 @@ Or manually add them to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  riverpod_mutation_utils: ^0.5.7
+  riverpod_mutation_utils: ^0.5.9
 
 dev_dependencies:
   build_runner: ^2.7.1
-  riverpod_mutation_utils_generator: ^0.5.5
+  riverpod_mutation_utils_generator: ^0.5.6
 ```
 
 ---
@@ -131,6 +131,10 @@ Future<MutationState<DentistModel>> call(DentistCreateInput input) async {
 ## Working with Family Providers
 
 When working with family providers, declare your family arguments in the notifier's `build` method. The generator automatically handles isolating the mutation state for each unique combination of arguments:
+
+Optional positional and named family parameters retain their declared types and
+default values in the generated mutation accessor. Provider and mutation calls
+therefore use the same omitted/defaulted argument shape.
 
 ### 1. Define the Family Provider
 ```dart

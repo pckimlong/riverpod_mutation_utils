@@ -10,12 +10,16 @@ class MutationParameterSpec {
     required this.name,
     this.isNamed = false,
     this.isRequiredNamed = false,
+    this.isOptionalPositional = false,
+    this.defaultValueCode,
   });
 
   final String type;
   final String name;
   final bool isNamed;
   final bool isRequiredNamed;
+  final bool isOptionalPositional;
+  final String? defaultValueCode;
 }
 
 String renderMutationSpec({
@@ -107,6 +111,8 @@ class GenerateMutationGenerator
               name: parameter.displayName,
               isNamed: parameter.isNamed,
               isRequiredNamed: parameter.isRequiredNamed,
+              isOptionalPositional: parameter.isOptionalPositional,
+              defaultValueCode: parameter.defaultValueCode,
             ),
           )
           .toList(growable: false),
@@ -134,24 +140,33 @@ class GenerateMutationGenerator
   }
 
   String _typeName(InterfaceType type) {
-    return type.getDisplayString().split('<').first;
+    return type.element.displayName;
   }
 }
 
 String _renderParameter(MutationParameterSpec parameter) {
+  final defaultValue = parameter.defaultValueCode;
+  final suffix = defaultValue == null ? '' : ' = $defaultValue';
+
   if (parameter.isNamed) {
     if (parameter.isRequiredNamed) {
       return 'required ${parameter.type} ${parameter.name}';
     }
-    return '${parameter.type} ${parameter.name}';
+    return '${parameter.type} ${parameter.name}$suffix';
   }
 
-  return '${parameter.type} ${parameter.name}';
+  return '${parameter.type} ${parameter.name}$suffix';
 }
 
 String _renderParameterList(List<MutationParameterSpec> parameters) {
-  final positional = parameters
-      .where((parameter) => !parameter.isNamed)
+  final requiredPositional = parameters
+      .where(
+        (parameter) => !parameter.isNamed && !parameter.isOptionalPositional,
+      )
+      .map(_renderParameter)
+      .toList(growable: false);
+  final optionalPositional = parameters
+      .where((parameter) => parameter.isOptionalPositional)
       .map(_renderParameter)
       .toList(growable: false);
   final named = parameters
@@ -160,7 +175,8 @@ String _renderParameterList(List<MutationParameterSpec> parameters) {
       .toList(growable: false);
 
   final parts = <String>[
-    ...positional,
+    ...requiredPositional,
+    if (optionalPositional.isNotEmpty) '[${optionalPositional.join(', ')}]',
     if (named.isNotEmpty) '{${named.join(', ')}}',
   ];
 

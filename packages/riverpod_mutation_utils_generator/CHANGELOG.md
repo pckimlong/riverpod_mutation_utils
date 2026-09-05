@@ -1,3 +1,12 @@
+## 0.5.6
+
+- Support analyzer `>=13.3.0 <15.0.0`, including analyzer 13.3 and 14, using
+  public analyzer and source_gen APIs.
+- Preserve optional positional and named parameter syntax, declared defaults,
+  nullable types, and nested generic types in generated mutation accessors.
+- Verify clean and incremental generation with current Riverpod generators and
+  document compatible build/source_gen combinations.
+
 ## 0.5.5
 
 - Improve the pub.dev README by removing local filesystem links and refreshing

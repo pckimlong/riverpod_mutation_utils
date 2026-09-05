@@ -232,7 +232,7 @@ class MutationRunner<Result> {
 }
 
 /// Shared helper for provider forms backed by sync build state.
-mixin StateFormMixin<FormState, Result> on $Notifier<FormState> {
+mixin StateFormMixin<FormState, Result> on AnyNotifier<FormState, FormState> {
   final _runner = MutationRunner<Result>(
     resetPolicy: MutationResetPolicy.onOwnerDispose,
   );
@@ -329,7 +329,8 @@ mixin StateFormMixin<FormState, Result> on $Notifier<FormState> {
 }
 
 /// Shared helper for provider forms backed by async build state.
-mixin AsyncStateFormMixin<FormState, Result> on $AsyncNotifier<FormState> {
+mixin AsyncStateFormMixin<FormState, Result>
+    on AnyNotifier<AsyncValue<FormState>, FormState> {
   final _runner = MutationRunner<Result>(
     resetPolicy: MutationResetPolicy.onOwnerDispose,
   );
@@ -439,7 +440,7 @@ mixin AsyncStateFormMixin<FormState, Result> on $AsyncNotifier<FormState> {
 ///
 /// Providers using this mixin should return `void` from `build()` and expose
 /// mutation progress by watching the separate [mutation] accessor.
-mixin MutationActionMixin<Result> on $Notifier<void> {
+mixin MutationActionMixin<Result> on AnyNotifier<void, void> {
   final _runner = MutationRunner<Result>(
     resetPolicy: MutationResetPolicy.manual,
   );
