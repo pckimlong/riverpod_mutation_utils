@@ -1,3 +1,9 @@
+## 0.5.10
+
+- Fix `submitActionState` and `submitState` returning `MutationIdle` on failure when no external listener is watching the mutation.
+- Retain an internal subscription on `ref` so the underlying mutation is not prematurely auto-disposed when `mutation.run` closes its transaction subscription.
+- Guard the final mutation state read with `ref.keepAlive()` during `submitActionState`.
+
 ## 0.5.9
 
 - Use Riverpod's public `AnyNotifier` mixin constraint so current Riverpod
