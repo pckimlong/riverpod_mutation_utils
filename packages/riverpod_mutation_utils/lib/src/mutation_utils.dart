@@ -82,12 +82,14 @@ class MutationRunner<Result> {
   final _registeredMutationDisposals = <Object>{};
 
   void ensureMutationResetOnDispose(Ref ref, Mutation<Result> mutation) {
-    if (resetPolicy != MutationResetPolicy.onOwnerDispose) return;
-
     if (_registeredMutationDisposals.add(mutation)) {
+      final sub = ref.listen<MutationState<Result>>(mutation, (_, _) {});
       final container = ref.container;
       ref.onDispose(() {
-        _scheduleMutationReset(mutation, container);
+        sub.close();
+        if (resetPolicy == MutationResetPolicy.onOwnerDispose) {
+          _scheduleMutationReset(mutation, container);
+        }
       });
     }
   }
@@ -179,6 +181,8 @@ class MutationRunner<Result> {
     FutureOr<void> Function(Result result)? afterSuccess,
     FutureOr<void> Function(Object error, StackTrace stackTrace)? afterError,
   }) async {
+    ensureMutationResetOnDispose(ref, mutation);
+    final keepAliveLink = ref.keepAlive();
     try {
       await submitAction(
         ref,
@@ -189,7 +193,12 @@ class MutationRunner<Result> {
         afterError: afterError,
       );
     } catch (_) {}
-    return ref.container.read(mutation);
+    try {
+      final state = ref.container.read(mutation);
+      return state;
+    } finally {
+      keepAliveLink.close();
+    }
   }
 
   /// Runs [run] like [submitAction], but if it has already succeeded, returns

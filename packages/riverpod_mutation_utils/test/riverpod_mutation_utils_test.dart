@@ -1202,5 +1202,75 @@ void main() {
         expect(mutationSub.read(), isA<MutationIdle<int>>());
       },
     );
+
+    group('submitActionState without external listeners', () {
+      test(
+        'returns MutationError on failure when mutation has no external listener',
+        () async {
+          final container = ProviderContainer.test();
+          addTearDown(container.dispose);
+
+          // Neither the provider nor the mutation is listened to with container.listen
+          final completer = Completer<int>();
+          final future = container
+              .read(_voidActionSubmitterProvider.notifier)
+              .submitStateWithProviderSideEffect(completer);
+
+          completer.completeError(StateError('auth failure'));
+
+          final state = await future;
+          expect(state, isA<MutationError<int>>());
+          final errorState = state as MutationError<int>;
+          expect(errorState.error, isA<StateError>());
+          expect((errorState.error as StateError).message, 'auth failure');
+        },
+      );
+
+      test(
+        'returns MutationSuccess on completion when mutation has no external listener',
+        () async {
+          final container = ProviderContainer.test();
+          addTearDown(container.dispose);
+
+          // Neither the provider nor the mutation is listened to with container.listen
+          final completer = Completer<int>();
+          final future = container
+              .read(_voidActionSubmitterProvider.notifier)
+              .submitStateWithProviderSideEffect(completer);
+
+          completer.complete(42);
+
+          final state = await future;
+          expect(state, isA<MutationSuccess<int>>());
+          expect((state as MutationSuccess<int>).value, 42);
+        },
+      );
+
+      test(
+        'coalesced unlistened submitActionState callers both receive MutationError',
+        () async {
+          final container = ProviderContainer.test();
+          addTearDown(container.dispose);
+
+          final completer = Completer<int>();
+          final first = container
+              .read(_voidActionSubmitterProvider.notifier)
+              .submitStateWithProviderSideEffect(completer);
+          final second = container
+              .read(_voidActionSubmitterProvider.notifier)
+              .submitStateWithProviderSideEffect(completer);
+
+          completer.completeError(Exception('concurrent error'));
+
+          final state1 = await first;
+          final state2 = await second;
+
+          expect(state1, isA<MutationError<int>>());
+          expect(state2, isA<MutationError<int>>());
+          expect((state1 as MutationError<int>).error.toString(), contains('concurrent error'));
+          expect((state2 as MutationError<int>).error.toString(), contains('concurrent error'));
+        },
+      );
+    });
   });
 }
